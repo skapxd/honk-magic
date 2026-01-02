@@ -85,6 +85,35 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
+## Entregable 3.5: Entorno de Debug/Testing
+**Objetivo:** Sandbox para desarrollar y probar mecánicas en aislamiento
+**Tag:** `v0.3.5-debug`
+
+### Tareas:
+- [ ] Agregar botón DEBUG en `main_menu.tscn` (después de OPCIONES)
+- [ ] Crear `scenes/debug/debug_menu.tscn`:
+  - Lista de escenarios de test disponibles
+  - Botón VOLVER al menú principal
+  - Estilo visual consistente con el tema
+- [ ] Crear `scenes/debug/test_player.tscn` (primer test):
+  - Terreno básico (ColorRect o tiles simples)
+  - Player con movimiento RTS
+  - Cámara que sigue al jugador
+  - HUD de debug (FPS, posición)
+  - Botón reset/volver
+- [ ] Agregar traducciones para DEBUG en `translations.csv`
+
+**Criterio de aceptación:** Main Menu → DEBUG → Test Player → mover jugador → VOLVER → Main Menu.
+
+### Escenarios futuros (se crean según se necesiten):
+- `test_runes.tscn` - Dibujo y reconocimiento de runas
+- `test_spells.tscn` - Lanzar hechizos y efectos
+- `test_combat.tscn` - Combate player vs enemigos
+- `test_rts.tscn` - Selección y comandos de unidades
+- `test_capture.tscn` - Captura e invocación
+
+---
+
 ## Entregable 4: Mundo Básico + Jugador
 **Objetivo:** Escena de gameplay con jugador movible (RTS style)
 **Tag:** `v0.4.0-player`
@@ -322,32 +351,34 @@ chore: mantenimiento
 
 ### Dependencias entre Entregables
 ```
-1 (Title) ─┐
-           ├─► 2 (Menu) ─┐
-           │             ├─► 3 (Saves) ─► 4 (Player) ─► 5 (Terrain)
-           │             │                    │
-           │             │                    ▼
-           │             │              6 (Runes) ─► 7 (Spells)
-           │             │                              │
-           │             │                              ▼
-           │             │                         8 (Enemies)
-           │             │                              │
-           │             │                              ▼
-           │             │                         9 (Allies)
-           │             │                              │
-           │             │                              ▼
-           │             │                        10 (Capture)
-           │             │                              │
-           │             │                              ▼
-           │             │                       11 (Grimoire)
-           │             │                              │
-           │             └────────────────────────────► │
-                                                        ▼
-                                                   12 (Pause)
-                                                        │
-                                                        ▼
-                                                   13 (Tutorial)
-                                                        │
-                                                        ▼
-                                                    14 (MVP)
+1 (Title) ─► 2 (Menu) ─► 3 (Saves) ─► 3.5 (Debug) ─┐
+                                                    │
+    ┌───────────────────────────────────────────────┘
+    │
+    ▼
+ 4 (Player) ─► 5 (Terrain) ─► 6 (Runes) ─► 7 (Spells)
+                                                │
+                                                ▼
+                                           8 (Enemies)
+                                                │
+                                                ▼
+                                           9 (Allies)
+                                                │
+                                                ▼
+                                          10 (Capture)
+                                                │
+                                                ▼
+                                         11 (Grimoire)
+                                                │
+                                                ▼
+                                           12 (Pause)
+                                                │
+                                                ▼
+                                          13 (Tutorial)
+                                                │
+                                                ▼
+                                            14 (MVP)
+
+Nota: El entorno Debug (3.5) permite desarrollar cada entregable
+en aislamiento. Cada test scene se crea cuando se necesita.
 ```

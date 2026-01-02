@@ -752,6 +752,14 @@ honk-magic/
 │   │   ├── player.tscn
 │   │   ├── ally.tscn
 │   │   └── enemy.tscn
+│   ├── debug/                       # <-- ENTORNO DE DEBUG/TESTING
+│   │   ├── debug_menu.tscn          # Menú con botones a escenarios de test
+│   │   ├── test_player.tscn         # Test: Movimiento RTS + cámara
+│   │   ├── test_runes.tscn          # Test: Dibujo y reconocimiento
+│   │   ├── test_spells.tscn         # Test: Lanzar hechizos + efectos
+│   │   ├── test_combat.tscn         # Test: Player vs enemigos
+│   │   ├── test_rts.tscn            # Test: Selección y comandos RTS
+│   │   └── test_capture.tscn        # Test: Captura e invocación
 │   └── dev_tools/                   # <-- HERRAMIENTAS DE DESARROLLO
 │       └── map_generator.tscn       # UI para generar y exportar mapas
 ├── scripts/
@@ -2008,6 +2016,49 @@ POST-MVP (movido a Sección 10):
   • Modo daltónico
   • Velocidad del juego (ralentizar)
   • Controles remapeables
+```
+
+### 9.17 Entorno de Debug/Testing ✅ DEFINIDO
+
+```
+PROPÓSITO:
+══════════════════════════════════════════════════════════════════
+Sandbox de desarrollo para probar mecánicas en aislamiento.
+Permite iterar rápido sin navegar por el flujo completo del juego.
+══════════════════════════════════════════════════════════════════
+
+ACCESO:
+  • Botón DEBUG en Main Menu (visible durante desarrollo)
+  • Ocultar con feature flag cuando el juego esté listo
+
+ESTRUCTURA:
+  scenes/debug/
+  ├── debug_menu.tscn      → Lista de escenarios disponibles
+  ├── test_player.tscn     → Movimiento RTS, cámara, terreno básico
+  ├── test_runes.tscn      → Canvas de runas, reconocimiento, feedback
+  ├── test_spells.tscn     → Lanzar hechizos, efectos visuales, dummies
+  ├── test_combat.tscn     → Player vs enemigos, sistema de daño
+  ├── test_rts.tscn        → Selección múltiple, comandos de unidades
+  └── test_capture.tscn    → Debilitar, capturar, invocar
+
+BENEFICIOS:
+  • Iteración rápida      → No hay que navegar menús cada vez
+  • Aislamiento           → Probar una mecánica sin dependencias
+  • Reproducibilidad      → Botones para spawn, reset, estados
+  • No contamina el juego → Código de debug separado
+
+FLUJO DE DESARROLLO:
+  ┌─────────────────────────────────────────────────────────────┐
+  │  1. Crear test scene   → Ambiente mínimo para la mecánica  │
+  │  2. Implementar        → Desarrollar en aislamiento         │
+  │  3. Probar vía DEBUG   → Iterar hasta que funcione          │
+  │  4. Integrar           → Portar al main_world cuando esté   │
+  └─────────────────────────────────────────────────────────────┘
+
+CADA TEST SCENE INCLUYE:
+  • HUD de debug (FPS, estado, info)
+  • Botón "Volver al menú"
+  • Controles específicos para ese test (spawn, reset, etc.)
 ```
 
 ---

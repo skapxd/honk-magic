@@ -11,10 +11,14 @@ config_version=5
 [application]
 
 config/name="HonkMagic"
-config/features=PackedStringArray("4.5", "GL Compatibility")
+config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.windows="forward_plus"
+renderer/rendering_method.linuxbsd="forward_plus"
+renderer/rendering_method.macos="forward_plus"
+renderer/rendering_method.web="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

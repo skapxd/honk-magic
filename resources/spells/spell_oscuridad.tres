@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SpellResource" load_steps=3 format=3 uid="uid://spell_oscuridad"]
+
+[ext_resource type="Script" path="res://scripts/spell_system/spell_resource.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://capture_trap_scene" path="res://scenes/spells/capture_trap.tscn" id="2_trap"]
+
+[resource]
+script = ExtResource("1_script")
+spell_name = "Captura"
+element = "oscuridad"
+description = "Coloca una trampa que captura enemigos debilitados (HP < 25%)."
+color = Color(0.482353, 0.172549, 0.74902, 1)
+mp_cost = 30
+cooldown = 3.0
+damage = 0.0
+healing = 0.0
+knockback_force = 0.0
+cast_type = 2
+projectile_speed = 400.0
+spawn_scene = ExtResource("2_trap")
+spawn_duration = 10.0

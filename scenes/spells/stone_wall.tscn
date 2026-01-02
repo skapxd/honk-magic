@@ -1,0 +1,81 @@
+[gd_scene load_steps=3 format=3 uid="uid://stone_wall_scene"]
+
+[sub_resource type="GDScript" id="GDScript_stone_wall"]
+script/source = "extends Node2D
+
+# =============================================================================
+# HONK MAGIC - Stone Wall
+# =============================================================================
+# Muro de piedra que bloquea el paso.
+
+@export var duration: float = 8.0
+@export var wall_width: float = 20.0
+@export var wall_color: Color = Color(\"#bc6c25\")
+
+var caster: Node2D = null
+var start_pos: Vector2 = Vector2.ZERO
+var end_pos: Vector2 = Vector2.ZERO
+
+@onready var line: Line2D = $Line2D
+@onready var collision: CollisionShape2D = $StaticBody2D/CollisionShape2D
+
+
+func _ready() -> void:
+	# Auto-destruir despues de duration
+	var timer := get_tree().create_timer(duration)
+	timer.timeout.connect(_on_timeout)
+
+
+func setup(p_start: Vector2, p_end: Vector2) -> void:
+	start_pos = p_start
+	end_pos = p_end
+
+	# Posicionar en el centro
+	global_position = (start_pos + end_pos) / 2.0
+
+	# Configurar linea visual
+	if line:
+		var local_start := start_pos - global_position
+		var local_end := end_pos - global_position
+		line.clear_points()
+		line.add_point(local_start)
+		line.add_point(local_end)
+		line.width = wall_width
+		line.default_color = wall_color
+
+	# Configurar colision
+	if collision:
+		var shape := RectangleShape2D.new()
+		var wall_length := start_pos.distance_to(end_pos)
+		shape.size = Vector2(wall_length, wall_width)
+		collision.shape = shape
+
+		# Rotar para alinear con la linea
+		var angle := (end_pos - start_pos).angle()
+		collision.get_parent().rotation = angle
+
+
+func _on_timeout() -> void:
+	# Animacion de desvanecimiento
+	var tween := create_tween()
+	tween.tween_property(self, \"modulate:a\", 0.0, 0.3)
+	tween.tween_callback(queue_free)
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
+size = Vector2(100, 20)
+
+[node name="StoneWall" type="Node2D"]
+script = SubResource("GDScript_stone_wall")
+
+[node name="Line2D" type="Line2D" parent="."]
+width = 20.0
+default_color = Color(0.737255, 0.423529, 0.145098, 1)
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+collision_layer = 6
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+shape = SubResource("RectangleShape2D_wall")

@@ -107,7 +107,7 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 ### Escenarios y herramientas de debug:
 - [x] `map_generator.tscn` - Generador de mapas procedurales (Entregable 6)
 - [x] `test_runes.tscn` - Dibujo y reconocimiento de runas (Entregable 7)
-- [ ] `test_spells.tscn` - Lanzar hechizos y efectos
+- [x] `test_spells.tscn` - Lanzar hechizos y efectos (Entregable 8)
 - [ ] `test_combat.tscn` - Combate player vs enemigos
 - [ ] `test_rts.tscn` - Selección y comandos de unidades
 - [ ] `test_capture.tscn` - Captura e invocación
@@ -265,23 +265,34 @@ resources/maps/
 
 ---
 
-## Entregable 8: Lanzar Hechizos
+## Entregable 8: Lanzar Hechizos ✅
 **Objetivo:** Hechizos funcionales con efectos visuales
 **Tag:** `v0.8.0-spells`
 
 ### Tareas:
-- [ ] Portar sistema de hechizos desde `rune-spell-cast`
-- [ ] Crear `scripts/spell_system/spell_caster.gd`
-- [ ] Crear `scripts/spell_system/spell_resource.gd`
-- [ ] Implementar 6 hechizos nivel 1:
-  - FUEGO_1: Bola de fuego + quemadura
-  - AGUA_1: Bola de agua + mojado
-  - VIENTO_1: Ráfaga + empuje
-  - TIERRA_1: Muro defensivo
-  - LUZ_1: Curación
-  - OSCURIDAD_1: Captura (placeholder)
-- [ ] Efectos de partículas para cada elemento
-- [ ] Sistema de MP: consumo y regeneración
+- [x] Portar sistema de hechizos desde `rune-spell-cast`
+- [x] Crear `scripts/spell_system/spell_caster.gd`
+- [x] Crear `scripts/spell_system/spell_resource.gd`
+- [x] Crear `scripts/spell_system/projectile.gd`
+- [x] Crear `scripts/spell_system/status_effect.gd` y efectos:
+  - `burn_effect.gd` - Daño por segundo (Fuego)
+  - `wet_effect.gd` - Ralentiza (Agua)
+  - `knockback_effect.gd` - Empuje (Viento)
+- [x] Crear `scripts/spell_system/status_manager.gd`
+- [x] Implementar 6 hechizos nivel 1:
+  - FUEGO: Bola de fuego (20 daño, 15 MP)
+  - AGUA: Bola de agua + mojado (12 daño, 12 MP)
+  - VIENTO: Ráfaga + empuje (8 daño, 10 MP)
+  - TIERRA: Muro defensivo (placeholder, 20 MP)
+  - LUZ: Curación (30 HP, 25 MP)
+  - OSCURIDAD: Captura (placeholder, 30 MP)
+- [x] Efectos de partículas para proyectiles e impactos
+- [x] Sistema de MP: consumo y regeneración automática
+- [x] Integrar con sistema de runas:
+  - Dibujar runa → carga hechizo
+  - Click izquierdo → lanzar hechizo
+  - Click derecho/ESC → cancelar
+- [x] Indicador visual de hechizo cargado en HUD
 
 **Criterio de aceptación:** Dibujar runa → cargar hechizo → click para lanzar → efecto visual.
 

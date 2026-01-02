@@ -1,0 +1,349 @@
+[gd_scene load_steps=7 format=3 uid="uid://test_spells_scene"]
+
+[ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+[ext_resource type="Theme" uid="uid://canhs6wcwwphu" path="res://resources/theme/honk_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://scripts/spell_system/spell_caster.gd" id="3_spell_caster"]
+
+[sub_resource type="GDScript" id="GDScript_caster_node"]
+script/source = "extends CharacterBody2D
+
+# Nodo caster simple para pruebas de hechizos
+
+var hp: int = 100
+var mp: int = 100
+const MAX_HP := 100
+const MAX_MP := 100
+"
+
+[sub_resource type="GDScript" id="GDScript_test_spells"]
+script/source = "extends Control
+
+# =============================================================================
+# HONK MAGIC - Test Spells (Debug Scene)
+# =============================================================================
+# Escena de prueba para el sistema de hechizos.
+
+@onready var spell_caster: SpellCaster = $SpellCaster
+@onready var feedback_label: Label = $UI/FeedbackPanel/FeedbackLabel
+@onready var spell_buttons: VBoxContainer = $UI/SpellListPanel/VBoxContainer/SpellButtons
+@onready var stats_label: Label = $UI/StatsPanel/VBoxContainer/StatsLabel
+@onready var target_dummy: Node2D = $GameArea/TargetDummy
+@onready var caster_node: CharacterBody2D = $GameArea/CasterNode
+
+const ELEMENT_COLORS := {
+	\"fuego\": Color(\"#e63946\"),
+	\"agua\": Color(\"#0077b6\"),
+	\"viento\": Color(\"#90e0ef\"),
+	\"tierra\": Color(\"#bc6c25\"),
+	\"luz\": Color(\"#ffd60a\"),
+	\"oscuridad\": Color(\"#7b2cbf\")
+}
+
+
+func _ready() -> void:
+	# Configurar spell caster con caster_node (Node2D requerido)
+	if spell_caster and caster_node:
+		spell_caster.caster = caster_node
+		spell_caster.spell_cast.connect(_on_spell_cast)
+		spell_caster.spell_failed.connect(_on_spell_failed)
+		spell_caster.mp_consumed.connect(_on_mp_consumed)
+
+	_populate_spell_buttons()
+	_update_feedback(\"Selecciona un hechizo y haz click para lanzar\", Color.WHITE)
+	_update_stats()
+
+
+func _populate_spell_buttons() -> void:
+	if not spell_buttons or not spell_caster:
+		return
+
+	for element in ELEMENT_COLORS:
+		var spell := spell_caster.get_spell_for_element(element)
+		if not spell:
+			continue
+
+		var btn := Button.new()
+		btn.text = \"%s (%d MP)\" % [spell.spell_name, spell.mp_cost]
+		btn.custom_minimum_size = Vector2(200, 40)
+
+		# Color del boton segun elemento
+		btn.add_theme_color_override(\"font_color\", ELEMENT_COLORS[element])
+
+		btn.pressed.connect(_on_spell_button_pressed.bind(element))
+		spell_buttons.add_child(btn)
+
+
+func _on_spell_button_pressed(element: String) -> void:
+	if spell_caster.charge_spell_from_rune(element):
+		var spell := spell_caster.charged_spell
+		_update_feedback(\"Hechizo cargado: %s - Click para lanzar\" % spell.spell_name, spell.color)
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		_on_back_pressed()
+		return
+
+	# Click izquierdo para lanzar hechizo cargado
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			# Mouse down - iniciar cast
+			if spell_caster.charged_spell:
+				var target_pos := get_global_mouse_position()
+				spell_caster.cast_at_position(target_pos)
+				# Si es VECTOR, mostrar feedback de arrastra
+				if spell_caster.is_vector_casting:
+					_update_feedback(\"Arrastra y suelta para crear el muro...\", spell_caster.charged_spell.color)
+		else:
+			# Mouse up - terminar vector cast si estamos en modo vector
+			if spell_caster.is_vector_casting:
+				var end_pos := get_global_mouse_position()
+				spell_caster.finish_vector_cast(end_pos)
+
+	# Click derecho para cancelar
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		if spell_caster.charged_spell or spell_caster.is_vector_casting:
+			spell_caster.cancel_charge()
+			_update_feedback(\"Hechizo cancelado\", Color(\"#ff6b6b\"))
+
+
+func _process(delta: float) -> void:
+	_update_stats()
+
+
+func _on_spell_cast(spell: SpellResource) -> void:
+	_update_feedback(\"%s lanzado!\" % spell.spell_name, spell.color)
+
+
+func _on_spell_failed(reason: String) -> void:
+	_update_feedback(reason, Color(\"#ff6b6b\"))
+
+
+func _on_mp_consumed(amount: int) -> void:
+	# MP ya fue consumido por spell_caster
+	pass
+
+
+func _update_feedback(text: String, color: Color) -> void:
+	if feedback_label:
+		feedback_label.text = text
+		feedback_label.modulate = color
+
+
+func _update_stats() -> void:
+	if stats_label and caster_node:
+		stats_label.text = \"HP: %d/%d\\nMP: %d/%d\" % [caster_node.hp, caster_node.MAX_HP, caster_node.mp, caster_node.MAX_MP]
+
+
+func _on_reset_pressed() -> void:
+	if caster_node:
+		caster_node.hp = caster_node.MAX_HP
+		caster_node.mp = caster_node.MAX_MP
+	_update_stats()
+	_update_feedback(\"Stats reseteados\", Color.WHITE)
+
+
+func _on_back_pressed() -> void:
+	SceneTransition.change_scene(\"res://scenes/debug/debug_menu.tscn\")
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.08, 0.06, 0.1, 1)
+shader_parameter/color_mid = Color(0.12, 0.1, 0.18, 1)
+shader_parameter/color_light = Color(0.1, 0.15, 0.2, 1)
+shader_parameter/color_accent = Color(0.9, 0.2, 0.3, 0.3)
+shader_parameter/fog_speed = 0.02
+shader_parameter/fog_scale = 12.0
+shader_parameter/fog_intensity = 0.25
+shader_parameter/particle_density = 20.0
+shader_parameter/particle_size = 0.003
+shader_parameter/particle_glow = 0.6
+
+[node name="TestSpells" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = SubResource("GDScript_test_spells")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+material = SubResource("ShaderMaterial_bg")
+
+[node name="GameArea" type="Node2D" parent="."]
+position = Vector2(960, 540)
+
+[node name="CasterNode" type="CharacterBody2D" parent="GameArea"]
+script = SubResource("GDScript_caster_node")
+
+[node name="Visual" type="Polygon2D" parent="GameArea/CasterNode"]
+color = Color(0.878431, 0.878431, 0.878431, 1)
+polygon = PackedVector2Array(20, -10, 20, 10, 0, 20, -20, 10, -20, -10, 0, -20)
+
+[node name="Label" type="Label" parent="GameArea/CasterNode"]
+offset_left = -30.0
+offset_top = 25.0
+offset_right = 30.0
+offset_bottom = 48.0
+text = "CASTER"
+horizontal_alignment = 1
+
+[node name="TargetDummy" type="Node2D" parent="GameArea"]
+position = Vector2(200, 0)
+
+[node name="Visual" type="Polygon2D" parent="GameArea/TargetDummy"]
+color = Color(0.8, 0.2, 0.2, 1)
+polygon = PackedVector2Array(-30, -30, 30, -30, 30, 30, -30, 30)
+
+[node name="Label" type="Label" parent="GameArea/TargetDummy"]
+offset_left = -30.0
+offset_top = 40.0
+offset_right = 30.0
+offset_bottom = 63.0
+text = "TARGET"
+horizontal_alignment = 1
+
+[node name="SpellCaster" type="Node2D" parent="."]
+script = ExtResource("3_spell_caster")
+
+[node name="UI" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="UI"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 20.0
+offset_right = 150.0
+offset_bottom = 60.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.9, 0.2, 0.3, 1)
+theme_override_font_sizes/font_size = 28
+text = "TEST HECHIZOS"
+horizontal_alignment = 1
+
+[node name="InstructionLabel" type="Label" parent="UI"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_top = 60.0
+offset_right = 250.0
+offset_bottom = 90.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 14
+text = "Selecciona un hechizo de la lista - Click izquierdo para lanzar"
+horizontal_alignment = 1
+
+[node name="FeedbackPanel" type="PanelContainer" parent="UI"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -100.0
+offset_right = 150.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="FeedbackLabel" type="Label" parent="UI/FeedbackPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Listo"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpellListPanel" type="PanelContainer" parent="UI"]
+layout_mode = 1
+offset_left = 20.0
+offset_top = 100.0
+offset_right = 250.0
+offset_bottom = 400.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/SpellListPanel"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="UI/SpellListPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.2, 0.3, 1)
+text = "Hechizos:"
+
+[node name="HSeparator" type="HSeparator" parent="UI/SpellListPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="SpellButtons" type="VBoxContainer" parent="UI/SpellListPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StatsPanel" type="PanelContainer" parent="UI"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -180.0
+offset_top = 100.0
+offset_right = -20.0
+offset_bottom = 220.0
+grow_horizontal = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/StatsPanel"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="UI/StatsPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.2, 0.3, 1)
+text = "Stats:"
+
+[node name="HSeparator" type="HSeparator" parent="UI/StatsPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatsLabel" type="Label" parent="UI/StatsPanel/VBoxContainer"]
+layout_mode = 2
+text = "HP: 100/100
+MP: 100/100"
+
+[node name="ResetBtn" type="Button" parent="UI/StatsPanel/VBoxContainer"]
+layout_mode = 2
+text = "RESET"
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="UI"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -40.0
+offset_right = 100.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="BackBtn" type="Button" parent="UI/ButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "VOLVER"
+
+[connection signal="pressed" from="UI/StatsPanel/VBoxContainer/ResetBtn" to="." method="_on_reset_pressed"]
+[connection signal="pressed" from="UI/ButtonsContainer/BackBtn" to="." method="_on_back_pressed"]

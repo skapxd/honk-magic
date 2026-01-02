@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SpellResource" load_steps=3 format=3 uid="uid://spell_agua"]
+
+[ext_resource type="Script" path="res://scripts/spell_system/spell_resource.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://projectile_base" path="res://scenes/spells/projectile_base.tscn" id="2_projectile"]
+
+[resource]
+script = ExtResource("1_script")
+spell_name = "Bola de Agua"
+element = "agua"
+description = "Lanza una bola de agua que moja y ralentiza al objetivo."
+color = Color(0, 0.466667, 0.713726, 1)
+mp_cost = 12
+cooldown = 0.8
+damage = 12.0
+healing = 0.0
+knockback_force = 30.0
+cast_type = 0
+projectile_speed = 450.0
+projectile_scene = ExtResource("2_projectile")
+spawn_duration = 5.0

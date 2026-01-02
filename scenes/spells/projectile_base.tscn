@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3 uid="uid://projectile_base"]
+
+[ext_resource type="Script" path="res://scripts/spell_system/projectile.gd" id="1_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 12.0
+
+[node name="Projectile" type="Area2D"]
+collision_layer = 4
+collision_mask = 6
+script = ExtResource("1_script")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(1, 1, 1, 1)
+polygon = PackedVector2Array(-8, -4, 8, 0, -8, 4)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")
+
+[node name="Trail" type="CPUParticles2D" parent="."]
+amount = 20
+lifetime = 0.4
+local_coords = false
+emission_shape = 1
+emission_sphere_radius = 4.0
+direction = Vector2(-1, 0)
+spread = 10.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 20.0
+initial_velocity_max = 40.0
+scale_amount_min = 2.0
+scale_amount_max = 4.0

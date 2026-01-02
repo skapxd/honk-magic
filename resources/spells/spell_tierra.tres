@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SpellResource" load_steps=3 format=3 uid="uid://spell_tierra"]
+
+[ext_resource type="Script" path="res://scripts/spell_system/spell_resource.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://stone_wall_scene" path="res://scenes/spells/stone_wall.tscn" id="2_wall"]
+
+[resource]
+script = ExtResource("1_script")
+spell_name = "Muro de Piedra"
+element = "tierra"
+description = "Crea un muro defensivo de piedra. Arrastra para definir longitud."
+color = Color(0.737255, 0.423529, 0.145098, 1)
+mp_cost = 20
+cooldown = 3.0
+damage = 0.0
+healing = 0.0
+knockback_force = 0.0
+cast_type = 3
+projectile_speed = 400.0
+spawn_scene = ExtResource("2_wall")
+spawn_duration = 8.0

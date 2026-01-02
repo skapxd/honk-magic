@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://yhwtam8bv7du" path="res://scenes/debug/debug_grid.gd" id="7_grid"]
 [ext_resource type="Script" path="res://scripts/core/procedural_terrain.gd" id="8_terrain"]
 [ext_resource type="PackedScene" uid="uid://rune_canvas_scene" path="res://scenes/gameplay/rune_canvas.tscn" id="9_rune_canvas"]
+[ext_resource type="Script" path="res://scripts/spell_system/spell_caster.gd" id="10_spell_caster"]
 
 [sub_resource type="GDScript" id="GDScript_main_world"]
 script/source = "extends Node2D
@@ -26,6 +27,8 @@ script/source = "extends Node2D
 @onready var terrain: ProceduralTerrain = $Terrain
 @onready var rune_canvas: CanvasLayer = $RuneCanvas
 @onready var rune_mode_indicator: Label = $HUD/RuneModeIndicator
+@onready var spell_caster: SpellCaster = $SpellCaster
+@onready var spell_indicator: Label = $HUD/SpellIndicator
 
 # HUD elements
 @onready var hp_progress: ProgressBar = $HUD/MarginContainer/TopLeft/HPBar/HPProgress
@@ -50,6 +53,7 @@ var _play_time_timer: float = 0.0
 var _debug_mode: bool = false
 var _dev_tools_mode: bool = false
 var _rune_mode: bool = false
+var _spell_mode: bool = false  # Esperando click para lanzar hechizo
 
 
 func _ready() -> void:
@@ -66,10 +70,17 @@ func _ready() -> void:
 	if terrain:
 		terrain.terrain_generated.connect(_on_terrain_generated)
 
+	# Configurar spell caster
+	if spell_caster:
+		spell_caster.caster = player
+		spell_caster.spell_cast.connect(_on_spell_cast)
+		spell_caster.spell_failed.connect(_on_spell_failed)
+
 	# Debug y Dev Tools off by default
 	_set_debug_mode(false)
 	_set_dev_tools_mode(false)
 	_set_rune_mode_indicator(false)
+	_set_spell_indicator(null)
 
 	# Conectar rune canvas
 	if rune_canvas:
@@ -191,13 +202,26 @@ func _set_dev_tools_mode(enabled: bool) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed(\"pause\") and not _rune_mode:
-		_save_and_exit()
+		if _spell_mode:
+			_cancel_spell_mode()
+		else:
+			_save_and_exit()
 	elif event.is_action_pressed(\"toggle_debug\"):
 		_set_debug_mode(not _debug_mode)
 	elif event.is_action_pressed(\"toggle_dev_tools\"):
 		_set_dev_tools_mode(not _dev_tools_mode)
-	elif event.is_action_pressed(\"toggle_rune_mode\") and not _rune_mode:
+	elif event.is_action_pressed(\"toggle_rune_mode\") and not _rune_mode and not _spell_mode:
 		_activate_rune_mode()
+	elif _spell_mode and event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_cast_spell_at_mouse()
+			else:
+				# Mouse up - terminar vector cast si estamos en modo vector
+				if spell_caster and spell_caster.is_vector_casting:
+					_finish_vector_cast()
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			_cancel_spell_mode()
 
 
 func _activate_rune_mode() -> void:
@@ -227,11 +251,83 @@ func _set_rune_mode_indicator(enabled: bool) -> void:
 func _on_rune_recognized(rune_name: String, score: float) -> void:
 	print(\"Runa reconocida: %s (%.0f%%)\" % [rune_name, score * 100])
 	_deactivate_rune_mode()
-	# TODO: Activar hechizo correspondiente en Entregable 8
+
+	# Cargar hechizo correspondiente
+	if spell_caster and spell_caster.charge_spell_from_rune(rune_name):
+		_activate_spell_mode()
 
 
 func _on_rune_cancelled() -> void:
 	_deactivate_rune_mode()
+
+
+func _activate_spell_mode() -> void:
+	if not spell_caster or not spell_caster.charged_spell:
+		return
+	_spell_mode = true
+	_set_spell_indicator(spell_caster.charged_spell)
+	# Desactivar selection manager mientras esta en modo hechizo
+	if selection_manager:
+		selection_manager.set_process_input(false)
+
+
+func _cancel_spell_mode() -> void:
+	_spell_mode = false
+	_set_spell_indicator(null)
+	if spell_caster:
+		spell_caster.cancel_charge()
+	# Reactivar selection manager
+	if selection_manager:
+		selection_manager.set_process_input(true)
+
+
+func _cast_spell_at_mouse() -> void:
+	if not spell_caster:
+		return
+
+	var mouse_pos := get_global_mouse_position()
+	if spell_caster.cast_at_position(mouse_pos):
+		_spell_mode = false
+		_set_spell_indicator(null)
+		# Reactivar selection manager
+		if selection_manager:
+			selection_manager.set_process_input(true)
+	elif spell_caster.is_vector_casting:
+		# Iniciamos vector cast, actualizar feedback
+		if spell_indicator:
+			spell_indicator.text = \"ARRASTRA Y SUELTA\"
+
+
+func _finish_vector_cast() -> void:
+	if not spell_caster:
+		return
+
+	var end_pos := get_global_mouse_position()
+	if spell_caster.finish_vector_cast(end_pos):
+		_spell_mode = false
+		_set_spell_indicator(null)
+		# Reactivar selection manager
+		if selection_manager:
+			selection_manager.set_process_input(true)
+
+
+func _on_spell_cast(spell: SpellResource) -> void:
+	print(\"Hechizo lanzado: %s\" % spell.spell_name)
+
+
+func _on_spell_failed(reason: String) -> void:
+	print(\"Hechizo fallido: %s\" % reason)
+	_cancel_spell_mode()
+
+
+func _set_spell_indicator(spell: SpellResource) -> void:
+	if spell_indicator:
+		if spell:
+			spell_indicator.text = spell.spell_name.to_upper()
+			spell_indicator.modulate = spell.color
+			spell_indicator.visible = true
+		else:
+			spell_indicator.visible = false
 
 
 # ==================== Dev Tools Callbacks ====================
@@ -506,6 +602,9 @@ text = "Cargar"
 
 [node name="RuneCanvas" parent="." instance=ExtResource("9_rune_canvas")]
 
+[node name="SpellCaster" type="Node2D" parent="."]
+script = ExtResource("10_spell_caster")
+
 [node name="RuneModeIndicator" type="Label" parent="HUD"]
 anchors_preset = 5
 anchor_left = 0.5
@@ -518,6 +617,22 @@ grow_horizontal = 2
 theme_override_colors/font_color = Color(0, 0.961, 0.831, 1)
 theme_override_font_sizes/font_size = 24
 text = "MODO RUNA"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpellIndicator" type="Label" parent="HUD"]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 70.0
+offset_right = 150.0
+offset_bottom = 110.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "HECHIZO CARGADO"
 horizontal_alignment = 1
 vertical_alignment = 1
 

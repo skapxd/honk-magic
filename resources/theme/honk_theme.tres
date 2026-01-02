@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=16 format=3 uid="uid://canhs6wcwwphu"]
+[gd_resource type="Theme" load_steps=15 format=3 uid="uid://canhs6wcwwphu"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
 bg_color = Color(0.078, 0.129, 0.239, 0.4)
@@ -64,58 +64,6 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_normal"]
-bg_color = Color(0.0, 0.35, 0.32, 0.9)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0, 0.961, 0.831, 0.8)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_hover"]
-bg_color = Color(0.0, 0.45, 0.40, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0, 0.961, 0.831, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0, 0.961, 0.831, 0.4)
-shadow_size = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_pressed"]
-bg_color = Color(0.0, 0.55, 0.50, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.5, 1, 0.9, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_focus"]
-bg_color = Color(0.0, 0.35, 0.32, 0.9)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.5, 1, 0.9, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0, 0.961, 0.831, 0.5)
-shadow_size = 12
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_separator"]
 bg_color = Color(0.988, 0.639, 0.067, 0.3)
 corner_radius_top_left = 2
@@ -137,6 +85,58 @@ corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_focus"]
+bg_color = Color(0, 0.35, 0.32, 0.9)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.5, 1, 0.9, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0.961, 0.831, 0.5)
+shadow_size = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_hover"]
+bg_color = Color(0, 0.45, 0.4, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.961, 0.831, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0.961, 0.831, 0.4)
+shadow_size = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_normal"]
+bg_color = Color(0, 0.35, 0.32, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.961, 0.831, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_pressed"]
+bg_color = Color(0, 0.55, 0.5, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 1, 0.9, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tooltip"]
 content_margin_left = 8.0
@@ -171,7 +171,15 @@ Button/styles/focus = SubResource("StyleBoxFlat_btn_focus")
 Button/styles/hover = SubResource("StyleBoxFlat_btn_hover")
 Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
 Button/styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
-PrimaryButton/base_type = "Button"
+HSeparator/styles/separator = SubResource("StyleBoxFlat_separator")
+Label/colors/font_color = Color(0.898, 0.898, 0.898, 1)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0.5)
+Label/constants/shadow_offset_x = 2
+Label/constants/shadow_offset_y = 2
+Label/font_sizes/font_size = 20
+Label/styles/normal = SubResource("StyleBoxFlat_label")
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
+PrimaryButton/base_type = &"Button"
 PrimaryButton/colors/font_color = Color(0.898, 0.898, 0.898, 1)
 PrimaryButton/colors/font_focus_color = Color(1, 1, 1, 1)
 PrimaryButton/colors/font_hover_color = Color(1, 1, 1, 1)
@@ -182,14 +190,6 @@ PrimaryButton/styles/focus = SubResource("StyleBoxFlat_primary_focus")
 PrimaryButton/styles/hover = SubResource("StyleBoxFlat_primary_hover")
 PrimaryButton/styles/normal = SubResource("StyleBoxFlat_primary_normal")
 PrimaryButton/styles/pressed = SubResource("StyleBoxFlat_primary_pressed")
-HSeparator/styles/separator = SubResource("StyleBoxFlat_separator")
-Label/colors/font_color = Color(0.898, 0.898, 0.898, 1)
-Label/colors/font_shadow_color = Color(0, 0, 0, 0.5)
-Label/constants/shadow_offset_x = 2
-Label/constants/shadow_offset_y = 2
-Label/font_sizes/font_size = 20
-Label/styles/normal = SubResource("StyleBoxFlat_label")
-PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
 TooltipLabel/colors/font_color = Color(0.898, 0.898, 0.898, 1)
 TooltipLabel/font_sizes/font_size = 16
 TooltipPanel/styles/panel = SubResource("StyleBoxFlat_tooltip")

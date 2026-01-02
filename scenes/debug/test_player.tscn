@@ -1,29 +1,32 @@
-[gd_scene load_steps=6 format=3 uid="uid://test_player_scene"]
+[gd_scene load_steps=8 format=3 uid="uid://bblfk0nbxbtry"]
 
 [ext_resource type="Theme" uid="uid://canhs6wcwwphu" path="res://resources/theme/honk_theme.tres" id="1_theme"]
-[ext_resource type="Script" path="res://scenes/debug/debug_grid.gd" id="2_grid"]
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
-radius = 30.0
+[ext_resource type="Script" uid="uid://yhwtam8bv7du" path="res://scenes/debug/debug_grid.gd" id="2_grid"]
+[ext_resource type="Script" uid="uid://cvvs8ogjyonwu" path="res://scripts/core/selection_manager.gd" id="3_selection"]
+[ext_resource type="Script" uid="uid://br5qfwuf7jgue" path="res://scenes/debug/selection_visual.gd" id="4_sel_visual"]
 
 [sub_resource type="GDScript" id="GDScript_test_player"]
 script/source = "extends Node2D
 
 # =============================================================================
-# HONK MAGIC - Test Player Scene
+# HONK MAGIC - Test Player Scene (RTS)
 # =============================================================================
-# Sandbox para probar movimiento RTS del jugador.
+# Sandbox para probar mecánicas RTS: selección y movimiento.
 
 @onready var player: CharacterBody2D = $Player
 @onready var camera: Camera2D = $Player/Camera2D
+@onready var selection_manager: SelectionManager = $SelectionManager
 @onready var debug_label: Label = $CanvasLayer/DebugHUD/VBoxContainer/DebugLabel
 @onready var fps_label: Label = $CanvasLayer/DebugHUD/VBoxContainer/FPSLabel
+@onready var selection_label: Label = $CanvasLayer/DebugHUD/VBoxContainer/SelectionLabel
 
 var _target_indicator: Node2D = null
 
 
 func _ready() -> void:
 	_create_target_indicator()
+	selection_manager.move_command.connect(_on_move_command)
+	selection_manager.selection_changed.connect(_on_selection_changed)
 
 
 func _process(_delta: float) -> void:
@@ -44,14 +47,16 @@ func _create_target_indicator() -> void:
 	add_child(_target_indicator)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed(\"secondary_action\"):
-		var target_pos := get_global_mouse_position()
-		player.move_to(target_pos)
-		_show_target_indicator(target_pos)
+func _on_move_command(target_pos: Vector2, units: Array) -> void:
+	for unit in units:
+		if is_instance_valid(unit) and unit.has_method(\"move_to\"):
+			unit.move_to(target_pos)
+	_show_target_indicator(target_pos)
 
-	if event.is_action_pressed(\"pause\"):
-		_on_back_pressed()
+
+func _on_selection_changed(units: Array) -> void:
+	if selection_label:
+		selection_label.text = \"Sel: %d\" % units.size()
 
 
 func _show_target_indicator(pos: Vector2) -> void:
@@ -63,28 +68,42 @@ func _show_target_indicator(pos: Vector2) -> void:
 
 func _on_back_pressed() -> void:
 	SceneTransition.change_scene(\"res://scenes/debug/debug_menu.tscn\")
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		_on_back_pressed()
 "
 
 [sub_resource type="GDScript" id="GDScript_player"]
 script/source = "extends CharacterBody2D
 
 # =============================================================================
-# HONK MAGIC - Player (Test Version)
+# HONK MAGIC - Player (RTS Version)
 # =============================================================================
+# Jugador con selección visual y movimiento RTS.
 
 @export var speed: float = 300.0
 @export var player_color: Color = Color(0.88, 0.88, 0.88)
+@export var selection_color: Color = Color(0, 0.961, 0.831, 0.8)
 @export var player_size: float = 30.0
 
 var target_position: Vector2 = Vector2.ZERO
 var is_moving: bool = false
+var is_selected: bool = false:
+	set(value):
+		is_selected = value
+		_update_selection_visual()
 
 @onready var visual: Polygon2D = $Visual
+@onready var selection_visual: Node2D = $SelectionVisual
 
 
 func _ready() -> void:
+	add_to_group(\"selectable\")
 	target_position = global_position
 	_create_hexagon_visual()
+	_update_selection_visual()
 
 
 func _create_hexagon_visual() -> void:
@@ -98,6 +117,16 @@ func _create_hexagon_visual() -> void:
 
 	visual.polygon = points
 	visual.color = player_color
+
+
+func _update_selection_visual() -> void:
+	if selection_visual:
+		selection_visual.visible = is_selected
+		selection_visual.queue_redraw()
+
+
+func set_selected(value: bool) -> void:
+	is_selected = value
 
 
 func move_to(pos: Vector2) -> void:
@@ -123,6 +152,9 @@ func _physics_process(_delta: float) -> void:
 		is_moving = false
 "
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 30.0
+
 [node name="TestPlayer" type="Node2D"]
 script = SubResource("GDScript_test_player")
 
@@ -136,6 +168,9 @@ color = Color(0.086, 0.129, 0.18, 1)
 [node name="Grid" type="Node2D" parent="."]
 script = ExtResource("2_grid")
 
+[node name="SelectionManager" type="Node2D" parent="."]
+script = ExtResource("3_selection")
+
 [node name="Player" type="CharacterBody2D" parent="."]
 script = SubResource("GDScript_player")
 
@@ -143,12 +178,15 @@ script = SubResource("GDScript_player")
 color = Color(0.878431, 0.878431, 0.878431, 1)
 polygon = PackedVector2Array(26, -15, 26, 15, 0, 30, -26, 15, -26, -15, 0, -30)
 
+[node name="SelectionVisual" type="Node2D" parent="Player"]
+visible = false
+script = ExtResource("4_sel_visual")
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
 shape = SubResource("CircleShape2D_player")
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
 position_smoothing_enabled = true
-position_smoothing_speed = 5.0
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -156,7 +194,7 @@ position_smoothing_speed = 5.0
 offset_left = 10.0
 offset_top = 10.0
 offset_right = 200.0
-offset_bottom = 80.0
+offset_bottom = 100.0
 theme = ExtResource("1_theme")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/DebugHUD"]
@@ -173,24 +211,31 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Pos: (0, 0)"
 
+[node name="SelectionLabel" type="Label" parent="CanvasLayer/DebugHUD/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Sel: 0"
+
 [node name="BackButton" type="Button" parent="CanvasLayer"]
 auto_translate_mode = 1
 offset_left = 10.0
-offset_top = 90.0
+offset_top = 110.0
 offset_right = 130.0
-offset_bottom = 130.0
+offset_bottom = 150.0
 theme = ExtResource("1_theme")
 text = "MENU_BACK"
 
 [node name="InstructionsLabel" type="Label" parent="CanvasLayer"]
 offset_left = 10.0
-offset_top = 140.0
-offset_right = 350.0
-offset_bottom = 200.0
+offset_top = 160.0
+offset_right = 400.0
+offset_bottom = 240.0
 theme = ExtResource("1_theme")
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 14
-text = "Click derecho: mover jugador
+text = "Click izquierdo: seleccionar
+Arrastrar: caja de selección
+Click derecho: mover seleccionados
 ESC: volver al menú"
 
 [connection signal="pressed" from="CanvasLayer/BackButton" to="." method="_on_back_pressed"]

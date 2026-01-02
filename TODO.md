@@ -113,25 +113,24 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 4: Sistema RTS + Movimiento
+## Entregable 4: Sistema RTS + Movimiento ✅
 **Objetivo:** Mecánicas de selección y movimiento estilo RTS
 **Tag:** `v0.4.0-rts`
 
 ### Tareas:
-- [ ] Crear `scripts/core/selection_manager.gd`:
+- [x] Crear `scripts/core/selection_manager.gd`:
   - Click izquierdo: seleccionar unidad
   - Arrastrar: caja de selección
   - Indicador visual de selección
-- [ ] Mejorar Player en `test_player.tscn`:
+- [x] Mejorar Player en `test_player.tscn`:
   - Añadir grupo "selectable"
-  - Visual de selección (círculo/borde)
+  - Visual de selección (círculo pulsante)
   - Solo mover si está seleccionado
-- [ ] Implementar movimiento RTS completo:
+- [x] Implementar movimiento RTS completo:
   - Click derecho: mover unidades seleccionadas
   - Indicador de destino animado
-  - Pathfinding básico (línea recta inicial)
-- [ ] Crear `scripts/entities/player.gd` reutilizable
-- [ ] Probar en `test_player.tscn`
+  - Movimiento en línea recta
+- [x] Probar en `test_player.tscn`
 
 **Criterio de aceptación:** Click izquierdo selecciona, caja de selección funciona, click derecho mueve unidad seleccionada.
 

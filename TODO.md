@@ -23,19 +23,19 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 1: Sistema Base + Pantalla de Título
+## Entregable 1: Sistema Base + Pantalla de Título ✅
 **Objetivo:** Juego ejecutable con pantalla de título funcional
 **Tag:** `v0.1.0-title`
 
 ### Tareas:
-- [ ] Crear `scripts/visuals/color_palette.gd` (constantes de color)
-- [ ] Crear `resources/theme/honk_theme.tres` (tema visual base)
-- [ ] Crear `autoloads/GameManager.gd` (estado global mínimo)
-- [ ] Crear `scenes/ui/title_screen.tscn` con:
+- [x] Crear `scripts/visuals/color_palette.gd` (constantes de color)
+- [x] Crear `resources/theme/honk_theme.tres` (tema visual base)
+- [x] Crear `autoloads/GameManager.gd` (estado global mínimo)
+- [x] Crear `scenes/ui/title_screen.tscn` con:
   - Logo "HONK MAGIC" procedural (texto + formas geométricas)
   - Fondo con shader de niebla/partículas
   - Texto "Dibuja una runa para entrar" (placeholder, sin funcionalidad aún)
-- [ ] Configurar `project.godot`:
+- [x] Configurar `project.godot`:
   - Autoloads
   - Input actions básicos
   - Resolución 1920x1080, stretch mode canvas_items
@@ -45,18 +45,18 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 2: Menú Principal + Navegación
+## Entregable 2: Menú Principal + Navegación ✅
 **Objetivo:** Navegación funcional entre pantallas
 **Tag:** `v0.2.0-menu`
 
 ### Tareas:
-- [ ] Crear `scenes/ui/main_menu.tscn` con:
+- [x] Crear `scenes/ui/main_menu.tscn` con:
   - Botones: AVENTURA, TUTORIAL, OPCIONES, SALIR
   - Fondo con shader de niebla
   - Transiciones suaves entre botones (hover/focus)
-- [ ] Crear `scenes/ui/options_menu.tscn` (placeholder mínimo)
-- [ ] Crear sistema de transiciones entre escenas
-- [ ] Implementar navegación:
+- [x] Crear `scenes/ui/options_menu.tscn` (con selector de idioma y pantalla completa)
+- [x] Crear sistema de transiciones entre escenas
+- [x] Implementar navegación:
   - Title Screen → (cualquier input) → Main Menu
   - Main Menu → SALIR → Cierra el juego
   - Main Menu → OPCIONES → Options Menu → VOLVER → Main Menu
@@ -66,20 +66,20 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 3: Sistema de Guardado + Selector de Partida
+## Entregable 3: Sistema de Guardado + Selector de Partida ✅
 **Objetivo:** Crear/cargar partidas con 3 slots
 **Tag:** `v0.3.0-saves`
 
 ### Tareas:
-- [ ] Crear `autoloads/SaveManager.gd`:
+- [x] Crear `autoloads/SaveManager.gd`:
   - Guardar/cargar en user://saves/
   - 3 slots de partida
   - Estructura de datos según PLAN.md sección 9.2
-- [ ] Crear `scenes/ui/save_select.tscn`:
+- [x] Crear `scenes/ui/save_select.tscn`:
   - 3 slots visuales
   - Mostrar datos de partida existente o "Nueva Partida"
   - Modal para ingresar nombre al crear partida
-- [ ] Conectar Main Menu → AVENTURA → Save Select
+- [x] Conectar Main Menu → AVENTURA → Save Select
 
 **Criterio de aceptación:** Crear partida, cerrar juego, volver a abrirlo y ver la partida guardada.
 

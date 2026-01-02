@@ -84,8 +84,7 @@ func _on_button_unhover(button: Button) -> void:
 
 
 func _on_adventure_pressed() -> void:
-	# TODO: Ir a selector de partidas (Entregable 3)
-	print(\"Aventura - pendiente Entregable 3\")
+	SceneTransition.change_scene(\"res://scenes/ui/save_select.tscn\")
 
 
 func _on_tutorial_pressed() -> void:
@@ -214,7 +213,7 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 0.5)
 theme_override_font_sizes/font_size = 14
-text = "v0.2.0"
+text = "v0.3.0"
 horizontal_alignment = 2
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/AdventureButton" to="." method="_on_adventure_pressed"]

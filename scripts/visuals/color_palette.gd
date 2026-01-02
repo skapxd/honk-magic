@@ -1,4 +1,4 @@
-class_name ColorPalette
+class_name HonkPalette
 extends RefCounted
 
 # =============================================================================

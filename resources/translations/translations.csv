@@ -17,11 +17,16 @@ OPTIONS_ON,Activado,On,Ativado
 OPTIONS_OFF,Desactivado,Off,Desativado
 SAVE_SELECT,Selecciona Partida,Select Save,Selecionar Jogo
 SAVE_NEW,Nueva Partida,New Game,Novo Jogo
+SAVE_EMPTY,Vacío,Empty,Vazio
 SAVE_PLAY,Jugar,Play,Jogar
+SAVE_DELETE,Eliminar,Delete,Excluir
 SAVE_CREATE,Crear,Create,Criar
 SAVE_NAME_PROMPT,¿Cómo te llamas joven mago?,What is your name young mage?,Qual é o seu nome jovem mago?
 SAVE_START,Comenzar,Start,Começar
 SAVE_CANCEL,Cancelar,Cancel,Cancelar
+SAVE_DELETE_CONFIRM,¿Eliminar esta partida?,Delete this save?,Excluir este jogo?
+SAVE_PLAY_TIME,Tiempo de juego,Play time,Tempo de jogo
+SAVE_SLOT,Partida,Save,Jogo
 HUD_HP,HP,HP,HP
 HUD_MP,MP,MP,MP
 PAUSE_TITLE,Pausa,Pause,Pausa

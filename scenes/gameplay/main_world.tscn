@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://c0qwx8m6r7hxp"]
+[gd_scene load_steps=12 format=3 uid="uid://c0qwx8m6r7hxp"]
 
 [ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
 [ext_resource type="Theme" uid="uid://canhs6wcwwphu" path="res://resources/theme/honk_theme.tres" id="2_theme"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://dkw7vqxh2m3ys" path="res://scenes/ui/hud.tscn" id="6_hud"]
 [ext_resource type="Script" uid="uid://yhwtam8bv7du" path="res://scenes/debug/debug_grid.gd" id="7_grid"]
 [ext_resource type="Script" path="res://scripts/core/procedural_terrain.gd" id="8_terrain"]
+[ext_resource type="PackedScene" uid="uid://rune_canvas_scene" path="res://scenes/gameplay/rune_canvas.tscn" id="9_rune_canvas"]
 
 [sub_resource type="GDScript" id="GDScript_main_world"]
 script/source = "extends Node2D
@@ -23,6 +24,8 @@ script/source = "extends Node2D
 @onready var debug_grid: Node2D = $DebugGrid
 @onready var debug_hud: PanelContainer = $DebugLayer/DebugHUD
 @onready var terrain: ProceduralTerrain = $Terrain
+@onready var rune_canvas: CanvasLayer = $RuneCanvas
+@onready var rune_mode_indicator: Label = $HUD/RuneModeIndicator
 
 # HUD elements
 @onready var hp_progress: ProgressBar = $HUD/MarginContainer/TopLeft/HPBar/HPProgress
@@ -46,6 +49,7 @@ var _target_indicator: Node2D = null
 var _play_time_timer: float = 0.0
 var _debug_mode: bool = false
 var _dev_tools_mode: bool = false
+var _rune_mode: bool = false
 
 
 func _ready() -> void:
@@ -65,6 +69,12 @@ func _ready() -> void:
 	# Debug y Dev Tools off by default
 	_set_debug_mode(false)
 	_set_dev_tools_mode(false)
+	_set_rune_mode_indicator(false)
+
+	# Conectar rune canvas
+	if rune_canvas:
+		rune_canvas.rune_recognized.connect(_on_rune_recognized)
+		rune_canvas.rune_cancelled.connect(_on_rune_cancelled)
 
 	# Cargar o generar terreno
 	_initialize_terrain()
@@ -180,12 +190,48 @@ func _set_dev_tools_mode(enabled: bool) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed(\"pause\"):
+	if event.is_action_pressed(\"pause\") and not _rune_mode:
 		_save_and_exit()
 	elif event.is_action_pressed(\"toggle_debug\"):
 		_set_debug_mode(not _debug_mode)
 	elif event.is_action_pressed(\"toggle_dev_tools\"):
 		_set_dev_tools_mode(not _dev_tools_mode)
+	elif event.is_action_pressed(\"toggle_rune_mode\") and not _rune_mode:
+		_activate_rune_mode()
+
+
+func _activate_rune_mode() -> void:
+	if _rune_mode or not rune_canvas:
+		return
+	_rune_mode = true
+	_set_rune_mode_indicator(true)
+	rune_canvas.activate()
+	# Desactivar selection manager mientras esta en modo runa
+	if selection_manager:
+		selection_manager.set_process_input(false)
+
+
+func _deactivate_rune_mode() -> void:
+	_rune_mode = false
+	_set_rune_mode_indicator(false)
+	# Reactivar selection manager
+	if selection_manager:
+		selection_manager.set_process_input(true)
+
+
+func _set_rune_mode_indicator(enabled: bool) -> void:
+	if rune_mode_indicator:
+		rune_mode_indicator.visible = enabled
+
+
+func _on_rune_recognized(rune_name: String, score: float) -> void:
+	print(\"Runa reconocida: %s (%.0f%%)\" % [rune_name, score * 100])
+	_deactivate_rune_mode()
+	# TODO: Activar hechizo correspondiente en Entregable 8
+
+
+func _on_rune_cancelled() -> void:
+	_deactivate_rune_mode()
 
 
 # ==================== Dev Tools Callbacks ====================
@@ -457,6 +503,23 @@ text = "Guardar"
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Cargar"
+
+[node name="RuneCanvas" parent="." instance=ExtResource("9_rune_canvas")]
+
+[node name="RuneModeIndicator" type="Label" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_top = 20.0
+offset_right = 100.0
+offset_bottom = 60.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0, 0.961, 0.831, 1)
+theme_override_font_sizes/font_size = 24
+text = "MODO RUNA"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [connection signal="pressed" from="DevToolsLayer/DevToolsPanel/VBoxContainer/SeedContainer/RandomSeedBtn" to="." method="_on_random_seed_pressed"]
 [connection signal="pressed" from="DevToolsLayer/DevToolsPanel/VBoxContainer/GenerateBtn" to="." method="_on_generate_pressed"]

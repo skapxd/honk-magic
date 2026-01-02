@@ -66,3 +66,9 @@ SPELL_CAPTURE,Captura,Capture,Captura
 CAPTURE_SUCCESS,¡Captura exitosa!,Capture successful!,Captura bem-sucedida!
 CAPTURE_FAIL,No está lo suficientemente débil,Not weak enough,Não está fraco o suficiente
 GAME_OVER,Fin del Juego,Game Over,Fim de Jogo
+RUNE_MODE,MODO RUNA,RUNE MODE,MODO RUNA
+RUNE_DRAW_INSTRUCTION,Mantén ESPACIO y dibuja - Suelta para reconocer,Hold SPACE and draw - Release to recognize,Segure ESPAÇO e desenhe - Solte para reconhecer
+RUNE_DRAWING,Dibujando...,Drawing...,Desenhando...
+RUNE_TOO_SHORT,Muy corto,Too short,Muito curto
+RUNE_NOT_RECOGNIZED,No reconocido,Not recognized,Não reconhecido
+RUNE_TRY_AGAIN,Intenta de nuevo...,Try again...,Tente novamente...

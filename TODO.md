@@ -106,7 +106,7 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ### Escenarios y herramientas de debug:
 - [x] `map_generator.tscn` - Generador de mapas procedurales (Entregable 6)
-- [ ] `test_runes.tscn` - Dibujo y reconocimiento de runas
+- [x] `test_runes.tscn` - Dibujo y reconocimiento de runas (Entregable 7)
 - [ ] `test_spells.tscn` - Lanzar hechizos y efectos
 - [ ] `test_combat.tscn` - Combate player vs enemigos
 - [ ] `test_rts.tscn` - Selección y comandos de unidades
@@ -239,23 +239,27 @@ resources/maps/
 
 ---
 
-## Entregable 7: Sistema de Runas Básico
+## Entregable 7: Sistema de Runas Básico ✅
 **Objetivo:** Dibujar runas y reconocerlas
 **Tag:** `v0.7.0-runes`
 
 ### Tareas:
-- [ ] Portar `DollarRecognizer.gd` desde `rune-trace`
-- [ ] Crear `scenes/gameplay/rune_canvas.tscn`:
-  - Modal centrado con dimmer
+- [x] Portar `DollarRecognizer.gd` desde `rune-trace`
+  - Algoritmo $1 para reconocimiento de gestos
+  - 6 runas predefinidas: fuego, agua, viento, tierra, luz, oscuridad
+- [x] Crear `scenes/gameplay/rune_canvas.tscn`:
+  - Modal centrado con dimmer (CanvasLayer)
   - Lienzo de dibujo (Line2D)
-  - Display de runas disponibles
-  - Feedback de reconocimiento
-- [ ] Implementar modo runa:
-  - ESPACIO para entrar/salir
+  - Display de runas disponibles (iconos de colores)
+  - Feedback de reconocimiento con score
+- [x] Implementar modo runa:
+  - ESPACIO para activar modo runa
   - Click arrastrar para dibujar
-  - Al soltar ESPACIO: reconocer runa
-- [ ] Integrar con HUD:
-  - Indicador visual de "modo runa activo"
+  - Soltar ESPACIO: reconocer runa
+  - ESC para cancelar
+- [x] Integrar con HUD:
+  - Indicador visual "MODO RUNA" en centro superior
+  - Desactivar SelectionManager durante modo runa
 
 **Criterio de aceptación:** Dibujar triángulo → reconoce "FUEGO", muestra feedback.
 

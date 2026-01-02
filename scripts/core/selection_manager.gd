@@ -67,14 +67,24 @@ func _end_drag(pos: Vector2) -> void:
 
 func _draw() -> void:
 	if _dragging:
-		var rect := _get_selection_rect()
+		# Convertir coordenadas de pantalla a mundo para dibujar
+		var world_start := _screen_to_world(_start_pos)
+		var world_end := _screen_to_world(_end_pos)
+		var rect := _get_rect_from_points(world_start, world_end)
 		draw_rect(rect, box_fill_color)
 		draw_rect(rect, box_border_color, false, 2.0)
 
 
 func _get_selection_rect() -> Rect2:
+	# Esta función usa coordenadas de pantalla para la lógica de selección
 	var top_left := Vector2(min(_start_pos.x, _end_pos.x), min(_start_pos.y, _end_pos.y))
 	var size := (_end_pos - _start_pos).abs()
+	return Rect2(top_left, size)
+
+
+func _get_rect_from_points(p1: Vector2, p2: Vector2) -> Rect2:
+	var top_left := Vector2(min(p1.x, p2.x), min(p1.y, p2.y))
+	var size := (p2 - p1).abs()
 	return Rect2(top_left, size)
 
 

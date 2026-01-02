@@ -26,6 +26,7 @@ script/source = "extends Control
 @export var adventure_button: Button
 @export var tutorial_button: Button
 @export var options_button: Button
+@export var debug_button: Button
 @export var exit_button: Button
 @export var button_container: VBoxContainer
 
@@ -41,7 +42,7 @@ func _ready() -> void:
 
 
 func _setup_buttons() -> void:
-	_buttons = [adventure_button, tutorial_button, options_button, exit_button]
+	_buttons = [adventure_button, tutorial_button, options_button, debug_button, exit_button]
 
 	for button in _buttons:
 		if button:
@@ -94,6 +95,10 @@ func _on_tutorial_pressed() -> void:
 
 func _on_options_pressed() -> void:
 	SceneTransition.change_scene(\"res://scenes/ui/options_menu.tscn\")
+
+
+func _on_debug_pressed() -> void:
+	SceneTransition.change_scene(\"res://scenes/debug/debug_menu.tscn\")
 
 
 func _on_exit_pressed() -> void:
@@ -191,6 +196,13 @@ size_flags_horizontal = 4
 text = "MENU_OPTIONS"
 auto_translate_mode = 1
 
+[node name="DebugButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(320, 64)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "MENU_DEBUG"
+auto_translate_mode = 1
+
 [node name="ExitButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(320, 64)
 layout_mode = 2
@@ -213,10 +225,11 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 0.5)
 theme_override_font_sizes/font_size = 14
-text = "v0.3.0"
+text = "v0.3.5"
 horizontal_alignment = 2
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/AdventureButton" to="." method="_on_adventure_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/TutorialButton" to="." method="_on_tutorial_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/OptionsButton" to="." method="_on_options_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/DebugButton" to="." method="_on_debug_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/ExitButton" to="." method="_on_exit_pressed"]

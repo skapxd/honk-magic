@@ -1,0 +1,158 @@
+[gd_scene load_steps=5 format=3 uid="uid://debug_menu_scene"]
+
+[ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+[ext_resource type="Theme" uid="uid://canhs6wcwwphu" path="res://resources/theme/honk_theme.tres" id="2_theme"]
+
+[sub_resource type="GDScript" id="GDScript_debug_menu"]
+script/source = "extends Control
+
+# =============================================================================
+# HONK MAGIC - Debug Menu
+# =============================================================================
+
+func _ready() -> void:
+	_animate_entrance()
+
+
+func _animate_entrance() -> void:
+	modulate.a = 0.0
+	var tween := create_tween()
+	tween.tween_property(self, \"modulate:a\", 1.0, 0.3)
+
+
+func _on_test_player_pressed() -> void:
+	SceneTransition.change_scene(\"res://scenes/debug/test_player.tscn\")
+
+
+func _on_back_pressed() -> void:
+	SceneTransition.change_scene(\"res://scenes/ui/main_menu.tscn\")
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		_on_back_pressed()
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.08, 0.06, 0.1, 1)
+shader_parameter/color_mid = Color(0.12, 0.1, 0.18, 1)
+shader_parameter/color_light = Color(0.1, 0.15, 0.2, 1)
+shader_parameter/color_accent = Color(0.0, 0.8, 0.7, 0.3)
+shader_parameter/fog_speed = 0.02
+shader_parameter/fog_scale = 12.0
+shader_parameter/fog_intensity = 0.25
+shader_parameter/particle_density = 20.0
+shader_parameter/particle_size = 0.003
+shader_parameter/particle_glow = 0.6
+
+[node name="DebugMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = SubResource("GDScript_debug_menu")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+material = SubResource("ShaderMaterial_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 100
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 100
+theme_override_constants/margin_bottom = 50
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+auto_translate_mode = 1
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.961, 0.831, 1)
+theme_override_colors/font_outline_color = Color(0, 0.4, 0.35, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 48
+text = "DEBUG_TITLE"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 16
+columns = 2
+
+[node name="TestPlayerButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(280, 64)
+layout_mode = 2
+text = "DEBUG_TEST_PLAYER"
+
+[node name="TestRunesButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(280, 64)
+layout_mode = 2
+disabled = true
+text = "DEBUG_TEST_RUNES"
+
+[node name="TestSpellsButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(280, 64)
+layout_mode = 2
+disabled = true
+text = "DEBUG_TEST_SPELLS"
+
+[node name="TestCombatButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(280, 64)
+layout_mode = 2
+disabled = true
+text = "DEBUG_TEST_COMBAT"
+
+[node name="TestRTSButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(280, 64)
+layout_mode = 2
+disabled = true
+text = "DEBUG_TEST_RTS"
+
+[node name="TestCaptureButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(280, 64)
+layout_mode = 2
+disabled = true
+text = "DEBUG_TEST_CAPTURE"
+
+[node name="Spacer2" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(200, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "MENU_BACK"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestPlayerButton" to="." method="_on_test_player_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_pressed"]

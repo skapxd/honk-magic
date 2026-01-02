@@ -86,24 +86,23 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 ---
 
 ## Entregable 3.5: Entorno de Debug/Testing
-**Objetivo:** Sandbox para desarrollar y probar mecánicas en aislamiento
+**Objetivo:** Infraestructura de sandbox para desarrollo
 **Tag:** `v0.3.5-debug`
 
 ### Tareas:
-- [ ] Agregar botón DEBUG en `main_menu.tscn` (después de OPCIONES)
-- [ ] Crear `scenes/debug/debug_menu.tscn`:
-  - Lista de escenarios de test disponibles
+- [x] Agregar botón DEBUG en `main_menu.tscn` (después de OPCIONES)
+- [x] Crear `scenes/debug/debug_menu.tscn`:
+  - Lista de escenarios de test (botones deshabilitados para futuros)
   - Botón VOLVER al menú principal
-  - Estilo visual consistente con el tema
-- [ ] Crear `scenes/debug/test_player.tscn` (primer test):
-  - Terreno básico (ColorRect o tiles simples)
-  - Player con movimiento RTS
+  - Estilo visual consistente (turquesa para debug)
+- [x] Crear `scenes/debug/test_player.tscn` (estructura básica):
+  - Grid de debug para visualizar movimiento
+  - Player básico (hexágono)
   - Cámara que sigue al jugador
   - HUD de debug (FPS, posición)
-  - Botón reset/volver
-- [ ] Agregar traducciones para DEBUG en `translations.csv`
+- [x] Agregar traducciones para DEBUG en `translations.csv`
 
-**Criterio de aceptación:** Main Menu → DEBUG → Test Player → mover jugador → VOLVER → Main Menu.
+**Criterio de aceptación:** Main Menu → DEBUG → Test Player → ver escena → VOLVER → Main Menu.
 
 ### Escenarios futuros (se crean según se necesiten):
 - `test_runes.tscn` - Dibujo y reconocimiento de runas
@@ -114,33 +113,51 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 4: Mundo Básico + Jugador
-**Objetivo:** Escena de gameplay con jugador movible (RTS style)
-**Tag:** `v0.4.0-player`
+## Entregable 4: Sistema RTS + Movimiento
+**Objetivo:** Mecánicas de selección y movimiento estilo RTS
+**Tag:** `v0.4.0-rts`
 
 ### Tareas:
-- [ ] Crear `scripts/visuals/procedural_shape.gd` (formas geométricas)
-- [ ] Crear `scenes/entities/player.tscn`:
-  - Hexágono procedural con vara flotante
-  - Estados: idle, move
-- [ ] Crear `scripts/entities/player.gd`:
-  - Movimiento RTS: click derecho para moverse
-  - Pathfinding básico (o línea recta inicial)
-- [ ] Crear `scenes/gameplay/main_world.tscn`:
-  - Fondo simple (color sólido o shader básico)
-  - Jugador instanciado
-  - Cámara que sigue al jugador
-- [ ] Crear HUD básico (`scenes/ui/hud.tscn`):
-  - HP/MP en esquina superior izquierda
-- [ ] Conectar Save Select → JUGAR → main_world
+- [ ] Crear `scripts/core/selection_manager.gd`:
+  - Click izquierdo: seleccionar unidad
+  - Arrastrar: caja de selección
+  - Indicador visual de selección
+- [ ] Mejorar Player en `test_player.tscn`:
+  - Añadir grupo "selectable"
+  - Visual de selección (círculo/borde)
+  - Solo mover si está seleccionado
+- [ ] Implementar movimiento RTS completo:
+  - Click derecho: mover unidades seleccionadas
+  - Indicador de destino animado
+  - Pathfinding básico (línea recta inicial)
+- [ ] Crear `scripts/entities/player.gd` reutilizable
+- [ ] Probar en `test_player.tscn`
 
-**Criterio de aceptación:** Mover jugador con click derecho, cámara lo sigue, HUD visible.
+**Criterio de aceptación:** Click izquierdo selecciona, caja de selección funciona, click derecho mueve unidad seleccionada.
 
 ---
 
-## Entregable 5: Terreno Procedural
+## Entregable 5: Mundo Básico + HUD
+**Objetivo:** Escena de gameplay conectada al flujo del juego
+**Tag:** `v0.5.0-world`
+
+### Tareas:
+- [ ] Crear `scenes/gameplay/main_world.tscn`:
+  - Fondo simple (shader de niebla)
+  - Jugador instanciado
+  - Selection Manager integrado
+- [ ] Crear HUD básico (`scenes/ui/hud.tscn`):
+  - HP/MP en esquina superior izquierda
+- [ ] Conectar Save Select → JUGAR → main_world
+- [ ] Guardar posición del jugador en SaveManager
+
+**Criterio de aceptación:** Flujo completo: Menú → Partida → Gameplay con HUD visible.
+
+---
+
+## Entregable 6: Terreno Procedural
 **Objetivo:** Mapa con terreno generado proceduralmente
-**Tag:** `v0.5.0-terrain`
+**Tag:** `v0.6.0-terrain`
 
 ### Tareas:
 - [ ] Portar sistema de terreno desde `rune-terrain`
@@ -158,9 +175,9 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 6: Sistema de Runas Básico
+## Entregable 7: Sistema de Runas Básico
 **Objetivo:** Dibujar runas y reconocerlas
-**Tag:** `v0.6.0-runes`
+**Tag:** `v0.7.0-runes`
 
 ### Tareas:
 - [ ] Portar `DollarRecognizer.gd` desde `rune-trace`
@@ -180,9 +197,9 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 7: Lanzar Hechizos
+## Entregable 8: Lanzar Hechizos
 **Objetivo:** Hechizos funcionales con efectos visuales
-**Tag:** `v0.7.0-spells`
+**Tag:** `v0.8.0-spells`
 
 ### Tareas:
 - [ ] Portar sistema de hechizos desde `rune-spell-cast`
@@ -202,9 +219,9 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 8: Enemigos
+## Entregable 9: Enemigos
 **Objetivo:** Enemigos con IA básica que atacan al jugador
-**Tag:** `v0.8.0-enemies`
+**Tag:** `v0.9.0-enemies`
 
 ### Tareas:
 - [ ] Crear `scripts/entities/entity_base.gd` (HP, daño, estados)
@@ -222,18 +239,14 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 9: Aliados + Sistema RTS
-**Objetivo:** Comandar aliados con selección RTS
-**Tag:** `v0.9.0-allies`
+## Entregable 10: Aliados
+**Objetivo:** Aliados que pelean junto al jugador
+**Tag:** `v0.10.0-allies`
 
 ### Tareas:
-- [ ] Portar sistema de selección desde `rune-rts-selection`
-- [ ] Crear `scripts/core/selection_manager.gd`
 - [ ] Crear `scenes/entities/ally.tscn` (triángulo + espada)
-- [ ] Implementar selección:
-  - Click izquierdo: seleccionar unidad
-  - Click + arrastrar: caja de selección
-  - Click derecho: mover unidades seleccionadas
+- [ ] Reutilizar Selection Manager del Entregable 4
+- [ ] Aliados seleccionables y comandables como el jugador
 - [ ] Aliados atacan enemigos automáticamente cuando están cerca
 - [ ] Aliados pueden morir
 
@@ -241,9 +254,9 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 10: Sistema de Captura
+## Entregable 11: Sistema de Captura
 **Objetivo:** Capturar enemigos debilitados
-**Tag:** `v0.10.0-capture`
+**Tag:** `v0.11.0-capture`
 
 ### Tareas:
 - [ ] Implementar OSCURIDAD_1 como hechizo de captura
@@ -256,9 +269,9 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 11: Grimorio + Invocación
+## Entregable 12: Grimorio + Invocación
 **Objetivo:** Ver monstruos capturados e invocarlos
-**Tag:** `v0.11.0-grimoire`
+**Tag:** `v0.12.0-grimoire`
 
 ### Tareas:
 - [ ] Crear `scenes/ui/grimoire.tscn`:
@@ -275,9 +288,9 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 12: Pausa + Game Over
+## Entregable 13: Pausa + Game Over
 **Objetivo:** Menú de pausa y condición de derrota
-**Tag:** `v0.12.0-pause`
+**Tag:** `v0.13.0-pause`
 
 ### Tareas:
 - [ ] Crear `scenes/ui/pause_menu.tscn`:
@@ -294,9 +307,9 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 13: Tutorial + Pulido
+## Entregable 14: Tutorial + Pulido
 **Objetivo:** Experiencia inicial guiada
-**Tag:** `v0.13.0-tutorial`
+**Tag:** `v0.14.0-tutorial`
 
 ### Tareas:
 - [ ] Crear mapa de tutorial con carteles diegéticos
@@ -313,7 +326,7 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 14: MVP Completo
+## Entregable 15: MVP Completo
 **Objetivo:** Versión jugable completa
 **Tag:** `v1.0.0-mvp`
 
@@ -351,33 +364,33 @@ chore: mantenimiento
 
 ### Dependencias entre Entregables
 ```
-1 (Title) ─► 2 (Menu) ─► 3 (Saves) ─► 3.5 (Debug) ─┐
-                                                    │
-    ┌───────────────────────────────────────────────┘
+1 (Title) ─► 2 (Menu) ─► 3 (Saves) ─► 3.5 (Debug) ─► 4 (RTS)
+                                                        │
+    ┌───────────────────────────────────────────────────┘
     │
     ▼
- 4 (Player) ─► 5 (Terrain) ─► 6 (Runes) ─► 7 (Spells)
-                                                │
-                                                ▼
-                                           8 (Enemies)
-                                                │
-                                                ▼
-                                           9 (Allies)
-                                                │
-                                                ▼
-                                          10 (Capture)
-                                                │
-                                                ▼
-                                         11 (Grimoire)
-                                                │
-                                                ▼
-                                           12 (Pause)
-                                                │
-                                                ▼
-                                          13 (Tutorial)
-                                                │
-                                                ▼
-                                            14 (MVP)
+ 5 (World) ─► 6 (Terrain) ─► 7 (Runes) ─► 8 (Spells)
+                                               │
+                                               ▼
+                                          9 (Enemies)
+                                               │
+                                               ▼
+                                          10 (Allies)
+                                               │
+                                               ▼
+                                         11 (Capture)
+                                               │
+                                               ▼
+                                        12 (Grimoire)
+                                               │
+                                               ▼
+                                          13 (Pause)
+                                               │
+                                               ▼
+                                        14 (Tutorial)
+                                               │
+                                               ▼
+                                           15 (MVP)
 
 Nota: El entorno Debug (3.5) permite desarrollar cada entregable
 en aislamiento. Cada test scene se crea cuando se necesita.

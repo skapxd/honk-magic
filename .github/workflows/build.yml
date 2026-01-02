@@ -1,0 +1,276 @@
+name: "Build and Deploy"
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+
+env:
+  GODOT_VERSION: 4.5.1
+  GAME_NAME: honk-magic
+
+jobs:
+  # ============================================
+  # WEB BUILD - Siempre se ejecuta
+  # Deploy a GitHub Pages solo en main
+  # ============================================
+  export_web:
+    name: Web Export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Cache Export Templates
+        id: cache-templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-export-templates-${{ env.GODOT_VERSION }}
+
+      - name: Setup Export Templates
+        if: steps.cache-templates.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+          unzip -q Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
+          rm -f Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+
+      - name: Import Project
+        run: godot --headless --import
+
+      - name: Web Build
+        run: |
+          mkdir -p build/web
+          godot --headless --verbose --export-release "Web" build/web/index.html
+
+      - name: Add .nojekyll
+        run: touch build/web/.nojekyll
+
+      - name: Add COOP/COEP headers for SharedArrayBuffer
+        run: |
+          cat > build/web/_headers << 'EOF'
+          /*
+            Cross-Origin-Opener-Policy: same-origin
+            Cross-Origin-Embedder-Policy: require-corp
+          EOF
+
+      - name: Upload Web Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.GAME_NAME }}-web
+          path: build/web
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build/web
+          branch: gh-pages
+
+  # ============================================
+  # WINDOWS BUILD
+  # Artifact siempre, Release solo con tags
+  # ============================================
+  export_windows:
+    name: Windows Export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Cache Export Templates
+        id: cache-templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-export-templates-${{ env.GODOT_VERSION }}
+
+      - name: Setup Export Templates
+        if: steps.cache-templates.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+          unzip -q Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
+          rm -f Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+
+      - name: Import Project
+        run: godot --headless --import
+
+      - name: Windows Build
+        run: |
+          mkdir -p build/windows
+          godot --headless --verbose --export-release "Windows Desktop" build/windows/${{ env.GAME_NAME }}.exe
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.GAME_NAME }}-windows
+          path: build/windows
+
+  # ============================================
+  # LINUX BUILD
+  # Artifact siempre, Release solo con tags
+  # ============================================
+  export_linux:
+    name: Linux Export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Cache Export Templates
+        id: cache-templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-export-templates-${{ env.GODOT_VERSION }}
+
+      - name: Setup Export Templates
+        if: steps.cache-templates.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+          unzip -q Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
+          rm -f Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+
+      - name: Import Project
+        run: godot --headless --import
+
+      - name: Linux Build
+        run: |
+          mkdir -p build/linux
+          godot --headless --verbose --export-release "Linux" build/linux/${{ env.GAME_NAME }}.x86_64
+
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.GAME_NAME }}-linux
+          path: build/linux
+
+  # ============================================
+  # MACOS BUILD
+  # Artifact siempre, Release solo con tags
+  # ============================================
+  export_macos:
+    name: macOS Export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Cache Export Templates
+        id: cache-templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-export-templates-${{ env.GODOT_VERSION }}
+
+      - name: Setup Export Templates
+        if: steps.cache-templates.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+          unzip -q Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
+          rm -f Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+
+      - name: Import Project
+        run: godot --headless --import
+
+      - name: macOS Build
+        run: |
+          mkdir -p build/macos
+          godot --headless --verbose --export-release "macOS" build/macos/${{ env.GAME_NAME }}.zip
+
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.GAME_NAME }}-macos
+          path: build/macos
+
+  # ============================================
+  # CREATE RELEASE
+  # Solo se ejecuta cuando hay un tag v*
+  # ============================================
+  create_release:
+    name: Create Release
+    needs: [export_web, export_windows, export_linux, export_macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          cd artifacts
+          # Zip cada plataforma
+          zip -r ../${{ env.GAME_NAME }}-web.zip ${{ env.GAME_NAME }}-web
+          zip -r ../${{ env.GAME_NAME }}-windows.zip ${{ env.GAME_NAME }}-windows
+          zip -r ../${{ env.GAME_NAME }}-linux.zip ${{ env.GAME_NAME }}-linux
+          # macOS ya viene como zip
+          cp ${{ env.GAME_NAME }}-macos/${{ env.GAME_NAME }}.zip ../${{ env.GAME_NAME }}-macos.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.GAME_NAME }}-web.zip
+            ${{ env.GAME_NAME }}-windows.zip
+            ${{ env.GAME_NAME }}-linux.zip
+            ${{ env.GAME_NAME }}-macos.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}

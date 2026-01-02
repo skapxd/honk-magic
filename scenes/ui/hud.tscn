@@ -1,0 +1,69 @@
+[gd_scene load_steps=2 format=3 uid="uid://dkw7vqxh2m3ys"]
+
+[ext_resource type="Theme" uid="uid://canhs6wcwwphu" path="res://resources/theme/honk_theme.tres" id="1_theme"]
+
+[node name="HUD" type="CanvasLayer"]
+layer = 10
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_theme")
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="TopLeft" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+theme_override_constants/separation = 8
+
+[node name="HPBar" type="HBoxContainer" parent="MarginContainer/TopLeft"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HPIcon" type="Label" parent="MarginContainer/TopLeft/HPBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.937255, 0.137255, 0.235294, 1)
+theme_override_font_sizes/font_size = 20
+text = "HP"
+
+[node name="HPProgress" type="ProgressBar" parent="MarginContainer/TopLeft/HPBar"]
+custom_minimum_size = Vector2(200, 24)
+layout_mode = 2
+theme_override_styles/fill = null
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="HPLabel" type="Label" parent="MarginContainer/TopLeft/HPBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "100/100"
+
+[node name="MPBar" type="HBoxContainer" parent="MarginContainer/TopLeft"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MPIcon" type="Label" parent="MarginContainer/TopLeft/MPBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.705882, 0.847059, 1)
+theme_override_font_sizes/font_size = 20
+text = "MP"
+
+[node name="MPProgress" type="ProgressBar" parent="MarginContainer/TopLeft/MPBar"]
+custom_minimum_size = Vector2(200, 24)
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="MPLabel" type="Label" parent="MarginContainer/TopLeft/MPBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "100/100"

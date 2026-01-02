@@ -1,0 +1,235 @@
+[gd_scene load_steps=10 format=3 uid="uid://c0qwx8m6r7hxp"]
+
+[ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+[ext_resource type="Theme" uid="uid://canhs6wcwwphu" path="res://resources/theme/honk_theme.tres" id="2_theme"]
+[ext_resource type="Script" uid="uid://cvvs8ogjyonwu" path="res://scripts/core/selection_manager.gd" id="3_selection"]
+[ext_resource type="Script" path="res://scripts/entities/player.gd" id="4_player"]
+[ext_resource type="Script" uid="uid://br5qfwuf7jgue" path="res://scenes/debug/selection_visual.gd" id="5_sel_visual"]
+[ext_resource type="PackedScene" uid="uid://dkw7vqxh2m3ys" path="res://scenes/ui/hud.tscn" id="6_hud"]
+[ext_resource type="Script" uid="uid://yhwtam8bv7du" path="res://scenes/debug/debug_grid.gd" id="7_grid"]
+
+[sub_resource type="GDScript" id="GDScript_main_world"]
+script/source = "extends Node2D
+
+# =============================================================================
+# HONK MAGIC - Main World
+# =============================================================================
+# Escena principal de gameplay.
+
+@onready var player: Player = $Player
+@onready var selection_manager: SelectionManager = $SelectionManager
+@onready var hud: CanvasLayer = $HUD
+@onready var debug_grid: Node2D = $DebugGrid
+@onready var debug_hud: PanelContainer = $DebugLayer/DebugHUD
+
+# HUD elements
+@onready var hp_progress: ProgressBar = $HUD/MarginContainer/TopLeft/HPBar/HPProgress
+@onready var hp_label: Label = $HUD/MarginContainer/TopLeft/HPBar/HPLabel
+@onready var mp_progress: ProgressBar = $HUD/MarginContainer/TopLeft/MPBar/MPProgress
+@onready var mp_label: Label = $HUD/MarginContainer/TopLeft/MPBar/MPLabel
+
+# Debug HUD elements
+@onready var fps_label: Label = $DebugLayer/DebugHUD/VBoxContainer/FPSLabel
+@onready var pos_label: Label = $DebugLayer/DebugHUD/VBoxContainer/PosLabel
+@onready var sel_label: Label = $DebugLayer/DebugHUD/VBoxContainer/SelLabel
+
+var _target_indicator: Node2D = null
+var _play_time_timer: float = 0.0
+var _debug_mode: bool = false
+
+
+func _ready() -> void:
+	_create_target_indicator()
+	selection_manager.move_command.connect(_on_move_command)
+	selection_manager.selection_changed.connect(_on_selection_changed)
+
+	# Conectar senales del player al HUD
+	if player:
+		player.hp_changed.connect(_on_hp_changed)
+		player.mp_changed.connect(_on_mp_changed)
+
+	# Debug mode off by default
+	_set_debug_mode(false)
+
+
+func _process(delta: float) -> void:
+	# Trackear tiempo de juego
+	_play_time_timer += delta
+	if _play_time_timer >= 1.0:
+		SaveManager.add_play_time(_play_time_timer)
+		_play_time_timer = 0.0
+
+	# Update debug HUD
+	if _debug_mode:
+		_update_debug_hud()
+
+
+func _update_debug_hud() -> void:
+	if fps_label:
+		fps_label.text = \"FPS: %d\" % Engine.get_frames_per_second()
+	if pos_label and player:
+		pos_label.text = \"Pos: (%.0f, %.0f)\" % [player.global_position.x, player.global_position.y]
+
+
+func _create_target_indicator() -> void:
+	_target_indicator = Node2D.new()
+	_target_indicator.set_script(preload(\"res://scenes/debug/target_indicator.gd\"))
+	_target_indicator.visible = false
+	add_child(_target_indicator)
+
+
+func _on_move_command(target_pos: Vector2, units: Array) -> void:
+	for unit in units:
+		if is_instance_valid(unit) and unit.has_method(\"move_to\"):
+			unit.move_to(target_pos)
+	_show_target_indicator(target_pos)
+
+
+func _on_selection_changed(units: Array) -> void:
+	if sel_label:
+		sel_label.text = \"Sel: %d\" % units.size()
+
+
+func _show_target_indicator(pos: Vector2) -> void:
+	if _target_indicator:
+		_target_indicator.global_position = pos
+		_target_indicator.visible = true
+		_target_indicator.start_animation()
+
+
+func _on_hp_changed(current: int, max_hp: int) -> void:
+	if hp_progress:
+		hp_progress.max_value = max_hp
+		hp_progress.value = current
+	if hp_label:
+		hp_label.text = \"%d/%d\" % [current, max_hp]
+
+
+func _on_mp_changed(current: int, max_mp: int) -> void:
+	if mp_progress:
+		mp_progress.max_value = max_mp
+		mp_progress.value = current
+	if mp_label:
+		mp_label.text = \"%d/%d\" % [current, max_mp]
+
+
+func _set_debug_mode(enabled: bool) -> void:
+	_debug_mode = enabled
+	if debug_grid:
+		debug_grid.visible = enabled
+	if debug_hud:
+		debug_hud.visible = enabled
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		_save_and_exit()
+	elif event.is_action_pressed(\"toggle_debug\"):
+		_set_debug_mode(not _debug_mode)
+
+
+func _save_and_exit() -> void:
+	# Guardar estado del jugador
+	if player:
+		player.save_state()
+	SaveManager.save_game()
+
+	# Volver al menu principal
+	SceneTransition.change_scene(\"res://scenes/ui/main_menu.tscn\")
+
+
+func _notification(what: int) -> void:
+	# Auto-guardar al salir
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if player:
+			player.save_state()
+		SaveManager.save_game()
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.0588235, 0.0588235, 0.101961, 1)
+shader_parameter/color_mid = Color(0.101961, 0.101961, 0.180392, 1)
+shader_parameter/color_light = Color(0.0862745, 0.129412, 0.180392, 1)
+shader_parameter/color_accent = Color(0.172549, 0.415686, 0.309804, 0.3)
+shader_parameter/fog_speed = 0.02
+shader_parameter/fog_scale = 12.0
+shader_parameter/fog_intensity = 0.25
+shader_parameter/particle_density = 20.0
+shader_parameter/particle_size = 0.003
+shader_parameter/particle_glow = 0.5
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 30.0
+
+[node name="MainWorld" type="Node2D"]
+script = SubResource("GDScript_main_world")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -100
+material = SubResource("ShaderMaterial_bg")
+offset_left = -3000.0
+offset_top = -3000.0
+offset_right = 3000.0
+offset_bottom = 3000.0
+
+[node name="DebugGrid" type="Node2D" parent="."]
+visible = false
+z_index = -50
+script = ExtResource("7_grid")
+
+[node name="SelectionManager" type="Node2D" parent="."]
+script = ExtResource("3_selection")
+
+[node name="Player" type="CharacterBody2D" parent="."]
+script = ExtResource("4_player")
+
+[node name="Visual" type="Polygon2D" parent="Player"]
+color = Color(0.878431, 0.878431, 0.878431, 1)
+polygon = PackedVector2Array(26, -15, 26, 15, 0, 30, -26, 15, -26, -15, 0, -30)
+
+[node name="SelectionVisual" type="Node2D" parent="Player"]
+visible = false
+script = ExtResource("5_sel_visual")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_player")
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position_smoothing_enabled = true
+
+[node name="HUD" parent="." instance=ExtResource("6_hud")]
+
+[node name="DebugLayer" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="DebugHUD" type="PanelContainer" parent="DebugLayer"]
+visible = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -200.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 100.0
+grow_horizontal = 0
+theme = ExtResource("2_theme")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="DebugLayer/DebugHUD"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="FPSLabel" type="Label" parent="DebugLayer/DebugHUD/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "FPS: 60"
+
+[node name="PosLabel" type="Label" parent="DebugLayer/DebugHUD/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Pos: (0, 0)"
+
+[node name="SelLabel" type="Label" parent="DebugLayer/DebugHUD/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Sel: 0"

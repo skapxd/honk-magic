@@ -203,9 +203,7 @@ func _on_name_input_submitted(new_text: String) -> void:
 
 
 func _go_to_gameplay() -> void:
-	# TODO: Change to gameplay scene when it exists
-	print(\"Going to gameplay - pending Entregable 4\")
-	# SceneTransition.change_scene(\"res://scenes/gameplay/main_world.tscn\")
+	SceneTransition.change_scene(\"res://scenes/gameplay/main_world.tscn\")
 
 
 func _on_back_pressed() -> void:

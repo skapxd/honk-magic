@@ -136,19 +136,20 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 5: Mundo Básico + HUD
+## Entregable 5: Mundo Básico + HUD ✅
 **Objetivo:** Escena de gameplay conectada al flujo del juego
 **Tag:** `v0.5.0-world`
 
 ### Tareas:
-- [ ] Crear `scenes/gameplay/main_world.tscn`:
+- [x] Crear `scenes/gameplay/main_world.tscn`:
   - Fondo simple (shader de niebla)
   - Jugador instanciado
   - Selection Manager integrado
-- [ ] Crear HUD básico (`scenes/ui/hud.tscn`):
+- [x] Crear HUD básico (`scenes/ui/hud.tscn`):
   - HP/MP en esquina superior izquierda
-- [ ] Conectar Save Select → JUGAR → main_world
-- [ ] Guardar posición del jugador en SaveManager
+- [x] Conectar Save Select → JUGAR → main_world
+- [x] Guardar posición del jugador en SaveManager
+- [x] Crear `scripts/entities/player.gd` reutilizable
 
 **Criterio de aceptación:** Flujo completo: Menú → Partida → Gameplay con HUD visible.
 

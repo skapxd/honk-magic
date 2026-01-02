@@ -1,0 +1,166 @@
+[gd_scene load_steps=5 format=3 uid="uid://c3xqv8h7kxpqe"]
+
+[ext_resource type="Shader" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.0588235, 0.0588235, 0.101961, 1)
+shader_parameter/color_mid = Color(0.101961, 0.101961, 0.180392, 1)
+shader_parameter/color_light = Color(0.0862745, 0.129412, 0.243137, 1)
+shader_parameter/color_accent = Color(0.482353, 0.172549, 0.74902, 0.3)
+shader_parameter/fog_speed = 0.05
+shader_parameter/fog_scale = 8.0
+shader_parameter/fog_intensity = 0.4
+shader_parameter/particle_density = 50.0
+shader_parameter/particle_size = 0.005
+shader_parameter/particle_glow = 1.0
+
+[sub_resource type="GDScript" id="GDScript_title"]
+script/source = "extends Control
+
+# =============================================================================
+# HONK MAGIC - Title Screen
+# =============================================================================
+
+@export var title_label: Label
+@export var subtitle_label: Label
+@export var prompt_label: Label
+
+var _pulse_tween: Tween
+
+func _ready() -> void:
+	_setup_labels()
+	_start_prompt_animation()
+
+
+func _setup_labels() -> void:
+	if title_label:
+		title_label.text = \"HONK MAGIC\"
+
+	if subtitle_label:
+		subtitle_label.text = \"\"
+
+	if prompt_label:
+		prompt_label.text = \"Presiona cualquier tecla para continuar\"
+		prompt_label.modulate.a = 0.0
+
+
+func _start_prompt_animation() -> void:
+	if not prompt_label:
+		return
+
+	# Fade in inicial
+	var fade_in := create_tween()
+	fade_in.tween_property(prompt_label, \"modulate:a\", 1.0, 1.0)
+	fade_in.set_delay(0.5)
+
+	# Pulso continuo
+	await fade_in.finished
+	_pulse_prompt()
+
+
+func _pulse_prompt() -> void:
+	if not prompt_label:
+		return
+
+	_pulse_tween = create_tween()
+	_pulse_tween.set_loops()
+	_pulse_tween.tween_property(prompt_label, \"modulate:a\", 0.4, 1.0)
+	_pulse_tween.tween_property(prompt_label, \"modulate:a\", 1.0, 1.0)
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey or event is InputEventMouseButton:
+		if event.pressed:
+			_go_to_menu()
+
+
+func _go_to_menu() -> void:
+	if _pulse_tween:
+		_pulse_tween.kill()
+
+	# TODO: Usar GameManager cuando esté configurado como autoload
+	get_tree().change_scene_to_file(\"res://scenes/ui/main_menu.tscn\")
+"
+
+[sub_resource type="LabelSettings" id="LabelSettings_title"]
+font_size = 120
+font_color = Color(0.878431, 0.878431, 0.878431, 1)
+outline_size = 8
+outline_color = Color(0.482353, 0.172549, 0.74902, 1)
+shadow_size = 4
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_offset = Vector2(4, 4)
+
+[node name="TitleScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = SubResource("GDScript_title")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+material = SubResource("ShaderMaterial_bg")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+label_settings = SubResource("LabelSettings_title")
+text = "HONK MAGIC"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = ""
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="PromptLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898039, 0.898039, 0.898039, 1)
+theme_override_font_sizes/font_size = 24
+text = "Presiona cualquier tecla para continuar"
+horizontal_alignment = 1
+
+[node name="VersionLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -40.0
+offset_right = -20.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 0.5)
+theme_override_font_sizes/font_size = 16
+text = "v0.1.0"
+horizontal_alignment = 2
+
+[connection signal="ready" from="." to="." method="_ready"]

@@ -1,0 +1,115 @@
+[gd_scene load_steps=4 format=3 uid="uid://b5kq2m8h6xpqf"]
+
+[ext_resource type="Shader" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.0588235, 0.0588235, 0.101961, 1)
+shader_parameter/color_mid = Color(0.101961, 0.101961, 0.180392, 1)
+shader_parameter/color_light = Color(0.0862745, 0.129412, 0.243137, 1)
+shader_parameter/color_accent = Color(0.482353, 0.172549, 0.74902, 0.3)
+shader_parameter/fog_speed = 0.03
+shader_parameter/fog_scale = 10.0
+shader_parameter/fog_intensity = 0.3
+shader_parameter/particle_density = 30.0
+shader_parameter/particle_size = 0.004
+shader_parameter/particle_glow = 0.8
+
+[sub_resource type="GDScript" id="GDScript_menu"]
+script/source = "extends Control
+
+# =============================================================================
+# HONK MAGIC - Main Menu (Placeholder para Entregable 2)
+# =============================================================================
+
+func _ready() -> void:
+	pass
+
+
+func _on_adventure_pressed() -> void:
+	# TODO: Ir a selector de partidas
+	print(\"Aventura presionado\")
+
+
+func _on_tutorial_pressed() -> void:
+	# TODO: Ir a tutorial
+	print(\"Tutorial presionado\")
+
+
+func _on_options_pressed() -> void:
+	# TODO: Ir a opciones
+	print(\"Opciones presionado\")
+
+
+func _on_exit_pressed() -> void:
+	get_tree().quit()
+"
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = SubResource("GDScript_menu")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+material = SubResource("ShaderMaterial_bg")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "HONK MAGIC"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="AdventureButton" type="Button" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(300, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "AVENTURA"
+
+[node name="TutorialButton" type="Button" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(300, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "TUTORIAL"
+
+[node name="OptionsButton" type="Button" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(300, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "OPCIONES"
+
+[node name="ExitButton" type="Button" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(300, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "SALIR"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/AdventureButton" to="." method="_on_adventure_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/TutorialButton" to="." method="_on_tutorial_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/OptionsButton" to="." method="_on_options_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/ExitButton" to="." method="_on_exit_pressed"]

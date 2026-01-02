@@ -159,19 +159,67 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 **Objetivo:** Mapa con terreno generado proceduralmente
 **Tag:** `v0.6.0-terrain`
 
-### Tareas:
-- [ ] Portar sistema de terreno desde `rune-terrain`
-- [ ] Adaptar paleta de colores (color_palette.gd)
-- [ ] Crear `scripts/core/procedural_terrain.gd`
-- [ ] Integrar en main_world.tscn:
-  - TileMapLayer con terreno generado
-  - Colisiones con muros
-  - Agua no transitable
-- [ ] Crear herramienta dev: `scenes/dev_tools/map_generator.tscn`
-  - Botón generar, slider seed
-  - Botón exportar a .tscn
+### Configuración de Rendering (desde rune-terrain)
 
-**Criterio de aceptación:** Jugador camina por terreno procedural, colisiona con muros.
+**Global** (project.godot):
+```ini
+[physics]
+common/physics_interpolation=true
+```
+- `physics_interpolation=true`: Movimiento fluido entre frames de física
+
+**Por Nodo** (NO global, para no afectar UI):
+```gdscript
+# En nodos que requieren pixel-perfect (terreno, player visual)
+texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+```
+
+Aplicar `TEXTURE_FILTER_NEAREST` solo a:
+- TileMapLayer (terreno)
+- Player Visual (Polygon2D)
+- Otros elementos de gameplay pixel-art
+
+NO aplicar a:
+- HUD (CanvasLayer)
+- Menús
+- Textos y botones
+
+### Sistema de Dev Tools
+- [ ] Agregar input action `toggle_dev_tools` → F4
+- [ ] Crear panel de Dev Tools (similar a Debug HUD pero para herramientas)
+- [ ] Dev Tools solo disponible en builds de desarrollo
+
+### Tareas:
+- [ ] Aplicar configuración de rendering en project.godot
+- [ ] Portar sistema de terreno desde `rune-terrain`:
+  - `world_generator.gd` → `scripts/core/procedural_terrain.gd`
+  - `map_loader.gd` → `scripts/core/map_loader.gd`
+- [ ] Adaptar paleta de colores (usar `color_palette.gd`):
+  - PISO_BASE (#2d6a4f) → Pasto transitable
+  - PISO_CLARO (#40916c) → Pasto claro transitable
+  - MURO (#1b263b) → Bloquea movimiento
+  - AGUA_TERRENO (#023e8a) → Bloquea movimiento
+- [ ] Crear `scripts/core/procedural_terrain.gd`:
+  - Generación con FastNoiseLite (Perlin)
+  - TileSet procedural con colores
+  - Colisiones automáticas para tiles sólidos
+- [ ] Crear `scripts/core/map_loader.gd`:
+  - Guardar mapas en `res://resources/maps/` (proyecto, trackeable con git)
+  - Formato JSON con grid CSV-style
+  - Cargar mapas existentes
+- [ ] Integrar en main_world.tscn:
+  - TileMapLayer con terreno
+  - Límites de cámara según tamaño del mapa
+- [ ] Crear Dev Tool: Map Generator (F4)
+  - Panel con controles:
+    - Slider: Seed
+    - Slider: Dimensiones (width/height)
+    - Slider: Frecuencia de ruido
+    - Botón: Generar nuevo mapa
+    - Botón: Guardar mapa (a res://resources/maps/)
+  - Preview del mapa generado
+
+**Criterio de aceptación:** Jugador camina por terreno procedural, colisiona con muros. Dev Tools permite generar y guardar mapas al proyecto.
 
 ---
 

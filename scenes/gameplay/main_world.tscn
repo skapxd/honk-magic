@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://c0qwx8m6r7hxp"]
+[gd_scene load_steps=11 format=3 uid="uid://c0qwx8m6r7hxp"]
 
 [ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
 [ext_resource type="Theme" uid="uid://canhs6wcwwphu" path="res://resources/theme/honk_theme.tres" id="2_theme"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://br5qfwuf7jgue" path="res://scenes/debug/selection_visual.gd" id="5_sel_visual"]
 [ext_resource type="PackedScene" uid="uid://dkw7vqxh2m3ys" path="res://scenes/ui/hud.tscn" id="6_hud"]
 [ext_resource type="Script" uid="uid://yhwtam8bv7du" path="res://scenes/debug/debug_grid.gd" id="7_grid"]
+[ext_resource type="Script" path="res://scripts/core/procedural_terrain.gd" id="8_terrain"]
 
 [sub_resource type="GDScript" id="GDScript_main_world"]
 script/source = "extends Node2D
@@ -21,6 +22,7 @@ script/source = "extends Node2D
 @onready var hud: CanvasLayer = $HUD
 @onready var debug_grid: Node2D = $DebugGrid
 @onready var debug_hud: PanelContainer = $DebugLayer/DebugHUD
+@onready var terrain: ProceduralTerrain = $Terrain
 
 # HUD elements
 @onready var hp_progress: ProgressBar = $HUD/MarginContainer/TopLeft/HPBar/HPProgress
@@ -33,9 +35,17 @@ script/source = "extends Node2D
 @onready var pos_label: Label = $DebugLayer/DebugHUD/VBoxContainer/PosLabel
 @onready var sel_label: Label = $DebugLayer/DebugHUD/VBoxContainer/SelLabel
 
+# Dev Tools elements
+@onready var dev_tools_panel: PanelContainer = $DevToolsLayer/DevToolsPanel
+@onready var seed_spinbox: SpinBox = $DevToolsLayer/DevToolsPanel/VBoxContainer/SeedContainer/SeedSpinBox
+@onready var width_spinbox: SpinBox = $DevToolsLayer/DevToolsPanel/VBoxContainer/WidthContainer/WidthSpinBox
+@onready var height_spinbox: SpinBox = $DevToolsLayer/DevToolsPanel/VBoxContainer/HeightContainer/HeightSpinBox
+@onready var map_name_input: LineEdit = $DevToolsLayer/DevToolsPanel/VBoxContainer/MapNameContainer/MapNameInput
+
 var _target_indicator: Node2D = null
 var _play_time_timer: float = 0.0
 var _debug_mode: bool = false
+var _dev_tools_mode: bool = false
 
 
 func _ready() -> void:
@@ -48,8 +58,45 @@ func _ready() -> void:
 		player.hp_changed.connect(_on_hp_changed)
 		player.mp_changed.connect(_on_mp_changed)
 
-	# Debug mode off by default
+	# Conectar terreno
+	if terrain:
+		terrain.terrain_generated.connect(_on_terrain_generated)
+
+	# Debug y Dev Tools off by default
 	_set_debug_mode(false)
+	_set_dev_tools_mode(false)
+
+	# Cargar o generar terreno
+	_initialize_terrain()
+
+
+func _initialize_terrain() -> void:
+	if not terrain:
+		return
+
+	# Intentar cargar mapa existente
+	if MapLoader.map_exists(\"default_map\"):
+		MapLoader.load_map(terrain, \"default_map\")
+	else:
+		# Generar nuevo mapa
+		terrain.generate()
+
+	# Posicionar jugador en spawn valido
+	if player:
+		var spawn_pos := terrain.find_spawn_position()
+		player.global_position = spawn_pos
+		player.target_position = spawn_pos
+
+
+func _on_terrain_generated(width: int, height: int) -> void:
+	# Actualizar limites de camara
+	var camera := player.get_node_or_null(\"Camera2D\") as Camera2D
+	if camera and terrain:
+		var bounds := terrain.get_map_bounds()
+		camera.limit_left = int(bounds.position.x)
+		camera.limit_top = int(bounds.position.y)
+		camera.limit_right = int(bounds.end.x)
+		camera.limit_bottom = int(bounds.end.y)
 
 
 func _process(delta: float) -> void:
@@ -121,12 +168,75 @@ func _set_debug_mode(enabled: bool) -> void:
 		debug_hud.visible = enabled
 
 
+func _set_dev_tools_mode(enabled: bool) -> void:
+	_dev_tools_mode = enabled
+	if dev_tools_panel:
+		dev_tools_panel.visible = enabled
+		if enabled and terrain:
+			# Sincronizar valores con el terreno actual
+			seed_spinbox.value = terrain.get_current_seed()
+			width_spinbox.value = terrain.map_width
+			height_spinbox.value = terrain.map_height
+
+
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed(\"pause\"):
 		_save_and_exit()
 	elif event.is_action_pressed(\"toggle_debug\"):
 		_set_debug_mode(not _debug_mode)
+	elif event.is_action_pressed(\"toggle_dev_tools\"):
+		_set_dev_tools_mode(not _dev_tools_mode)
 
+
+# ==================== Dev Tools Callbacks ====================
+
+func _on_generate_pressed() -> void:
+	if not terrain:
+		return
+
+	terrain.map_width = int(width_spinbox.value)
+	terrain.map_height = int(height_spinbox.value)
+	terrain.generate(int(seed_spinbox.value))
+
+	# Reposicionar jugador
+	if player:
+		var spawn_pos := terrain.find_spawn_position()
+		player.global_position = spawn_pos
+		player.target_position = spawn_pos
+
+
+func _on_random_seed_pressed() -> void:
+	seed_spinbox.value = randi()
+
+
+func _on_save_map_pressed() -> void:
+	if not terrain:
+		return
+
+	var map_name := map_name_input.text.strip_edges()
+	if map_name.is_empty():
+		map_name = \"default_map\"
+
+	if MapLoader.save_map(terrain, map_name):
+		print(\"Mapa guardado: \", map_name)
+
+
+func _on_load_map_pressed() -> void:
+	if not terrain:
+		return
+
+	var map_name := map_name_input.text.strip_edges()
+	if map_name.is_empty():
+		map_name = \"default_map\"
+
+	if MapLoader.load_map(terrain, map_name):
+		if player:
+			var spawn_pos := terrain.find_spawn_position()
+			player.global_position = spawn_pos
+			player.target_position = spawn_pos
+
+
+# ==================== Save & Exit ====================
 
 func _save_and_exit() -> void:
 	# Guardar estado del jugador
@@ -173,15 +283,21 @@ offset_top = -3000.0
 offset_right = 3000.0
 offset_bottom = 3000.0
 
+[node name="Terrain" type="TileMapLayer" parent="."]
+z_index = -10
+texture_filter = 0
+script = ExtResource("8_terrain")
+
 [node name="DebugGrid" type="Node2D" parent="."]
 visible = false
-z_index = -50
+z_index = -5
 script = ExtResource("7_grid")
 
 [node name="SelectionManager" type="Node2D" parent="."]
 script = ExtResource("3_selection")
 
 [node name="Player" type="CharacterBody2D" parent="."]
+texture_filter = 0
 script = ExtResource("4_player")
 
 [node name="Visual" type="Polygon2D" parent="Player"]
@@ -233,3 +349,116 @@ text = "Pos: (0, 0)"
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Sel: 0"
+
+[node name="DevToolsLayer" type="CanvasLayer" parent="."]
+layer = 101
+
+[node name="DevToolsPanel" type="PanelContainer" parent="DevToolsLayer"]
+visible = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 120.0
+offset_right = -10.0
+offset_bottom = 420.0
+grow_horizontal = 0
+theme = ExtResource("2_theme")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="DevToolsLayer/DevToolsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="DevToolsLayer/DevToolsPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.961, 0.831, 1)
+theme_override_font_sizes/font_size = 18
+text = "DEV TOOLS (F4)"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="DevToolsLayer/DevToolsPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="SeedContainer" type="HBoxContainer" parent="DevToolsLayer/DevToolsPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="SeedLabel" type="Label" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/SeedContainer"]
+layout_mode = 2
+text = "Seed:"
+
+[node name="SeedSpinBox" type="SpinBox" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/SeedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+max_value = 999999.0
+value = 12345.0
+
+[node name="RandomSeedBtn" type="Button" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/SeedContainer"]
+layout_mode = 2
+text = "Rand"
+
+[node name="WidthContainer" type="HBoxContainer" parent="DevToolsLayer/DevToolsPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="WidthLabel" type="Label" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/WidthContainer"]
+layout_mode = 2
+text = "Width:"
+
+[node name="WidthSpinBox" type="SpinBox" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/WidthContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 20.0
+max_value = 200.0
+value = 80.0
+
+[node name="HeightContainer" type="HBoxContainer" parent="DevToolsLayer/DevToolsPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="HeightLabel" type="Label" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/HeightContainer"]
+layout_mode = 2
+text = "Height:"
+
+[node name="HeightSpinBox" type="SpinBox" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/HeightContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 20.0
+max_value = 200.0
+value = 60.0
+
+[node name="GenerateBtn" type="Button" parent="DevToolsLayer/DevToolsPanel/VBoxContainer"]
+layout_mode = 2
+text = "Generar Mapa"
+
+[node name="HSeparator2" type="HSeparator" parent="DevToolsLayer/DevToolsPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="MapNameContainer" type="HBoxContainer" parent="DevToolsLayer/DevToolsPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="MapNameLabel" type="Label" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/MapNameContainer"]
+layout_mode = 2
+text = "Nombre:"
+
+[node name="MapNameInput" type="LineEdit" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/MapNameContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "default_map"
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="DevToolsLayer/DevToolsPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SaveMapBtn" type="Button" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/ButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Guardar"
+
+[node name="LoadMapBtn" type="Button" parent="DevToolsLayer/DevToolsPanel/VBoxContainer/ButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cargar"
+
+[connection signal="pressed" from="DevToolsLayer/DevToolsPanel/VBoxContainer/SeedContainer/RandomSeedBtn" to="." method="_on_random_seed_pressed"]
+[connection signal="pressed" from="DevToolsLayer/DevToolsPanel/VBoxContainer/GenerateBtn" to="." method="_on_generate_pressed"]
+[connection signal="pressed" from="DevToolsLayer/DevToolsPanel/VBoxContainer/ButtonsContainer/SaveMapBtn" to="." method="_on_save_map_pressed"]
+[connection signal="pressed" from="DevToolsLayer/DevToolsPanel/VBoxContainer/ButtonsContainer/LoadMapBtn" to="." method="_on_load_map_pressed"]

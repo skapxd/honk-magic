@@ -104,12 +104,13 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 **Criterio de aceptación:** Main Menu → DEBUG → Test Player → ver escena → VOLVER → Main Menu.
 
-### Escenarios futuros (se crean según se necesiten):
-- `test_runes.tscn` - Dibujo y reconocimiento de runas
-- `test_spells.tscn` - Lanzar hechizos y efectos
-- `test_combat.tscn` - Combate player vs enemigos
-- `test_rts.tscn` - Selección y comandos de unidades
-- `test_capture.tscn` - Captura e invocación
+### Escenarios y herramientas de debug:
+- [x] `map_generator.tscn` - Generador de mapas procedurales (Entregable 6)
+- [ ] `test_runes.tscn` - Dibujo y reconocimiento de runas
+- [ ] `test_spells.tscn` - Lanzar hechizos y efectos
+- [ ] `test_combat.tscn` - Combate player vs enemigos
+- [ ] `test_rts.tscn` - Selección y comandos de unidades
+- [ ] `test_capture.tscn` - Captura e invocación
 
 ---
 
@@ -155,7 +156,7 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 
 ---
 
-## Entregable 6: Terreno Procedural
+## Entregable 6: Terreno Procedural ✅
 **Objetivo:** Mapa con terreno generado proceduralmente
 **Tag:** `v0.6.0-terrain`
 
@@ -185,41 +186,56 @@ NO aplicar a:
 - Textos y botones
 
 ### Sistema de Dev Tools
-- [ ] Agregar input action `toggle_dev_tools` → F4
-- [ ] Crear panel de Dev Tools (similar a Debug HUD pero para herramientas)
-- [ ] Dev Tools solo disponible en builds de desarrollo
+- [x] Agregar input action `toggle_dev_tools` → F4
+- [x] Crear panel de Dev Tools (similar a Debug HUD pero para herramientas)
 
 ### Tareas:
-- [ ] Aplicar configuración de rendering en project.godot
-- [ ] Portar sistema de terreno desde `rune-terrain`:
+- [x] Aplicar configuración de rendering en project.godot
+- [x] Portar sistema de terreno desde `rune-terrain`:
   - `world_generator.gd` → `scripts/core/procedural_terrain.gd`
   - `map_loader.gd` → `scripts/core/map_loader.gd`
-- [ ] Adaptar paleta de colores (usar `color_palette.gd`):
-  - PISO_BASE (#2d6a4f) → Pasto transitable
-  - PISO_CLARO (#40916c) → Pasto claro transitable
-  - MURO (#1b263b) → Bloquea movimiento
-  - AGUA_TERRENO (#023e8a) → Bloquea movimiento
-- [ ] Crear `scripts/core/procedural_terrain.gd`:
+- [x] Adaptar paleta de colores:
+  - Agua Profunda (#023e8a) → Bloquea movimiento
+  - Agua (#0077b6) → Bloquea movimiento
+  - Arena (#dda15e) → Transitable
+  - Pasto (#2d6a4f) → Transitable
+  - Pasto Claro (#40916c) → Transitable
+  - Roca (#1b263b) → Bloquea movimiento
+- [x] Crear `scripts/core/procedural_terrain.gd`:
   - Generación con FastNoiseLite (Perlin)
   - TileSet procedural con colores
   - Colisiones automáticas para tiles sólidos
-- [ ] Crear `scripts/core/map_loader.gd`:
+  - TEXTURE_FILTER_NEAREST aplicado por nodo
+- [x] Crear `scripts/core/map_loader.gd`:
   - Guardar mapas en `res://resources/maps/` (proyecto, trackeable con git)
   - Formato JSON con grid CSV-style
   - Cargar mapas existentes
-- [ ] Integrar en main_world.tscn:
+- [x] Integrar en main_world.tscn:
   - TileMapLayer con terreno
   - Límites de cámara según tamaño del mapa
-- [ ] Crear Dev Tool: Map Generator (F4)
+- [x] Crear Dev Tool: Map Generator (F4)
   - Panel con controles:
-    - Slider: Seed
-    - Slider: Dimensiones (width/height)
-    - Slider: Frecuencia de ruido
+    - SpinBox: Seed + botón Random
+    - SpinBox: Dimensiones (width/height)
     - Botón: Generar nuevo mapa
-    - Botón: Guardar mapa (a res://resources/maps/)
-  - Preview del mapa generado
+    - Botón: Guardar/Cargar mapa
+- [x] Crear escena Map Generator accesible desde Debug Menu
+  - Vista previa del mapa generado en SubViewport
+  - Click en mapas guardados muestra vista previa
+  - Exportar como .tscn con atlas, tileset y colisiones preservadas
+  - Mapas organizados en carpetas individuales (`resources/maps/nombre_mapa/`)
 
-**Criterio de aceptación:** Jugador camina por terreno procedural, colisiona con muros. Dev Tools permite generar y guardar mapas al proyecto.
+### Estructura de Carpeta por Mapa
+```
+resources/maps/
+  nombre_mapa/
+    map.json       # Datos del mapa (grid, seed, biomas)
+    atlas.png      # Textura del tileset (si exportado)
+    tileset.tres   # TileSet con colisiones (si exportado)
+    scene.tscn     # Escena editable en Godot (si exportado)
+```
+
+**Criterio de aceptación:** Jugador camina por terreno procedural, colisiona con muros. Dev Tools permite generar, guardar y exportar mapas editables.
 
 ---
 

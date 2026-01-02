@@ -1,0 +1,421 @@
+[gd_scene load_steps=5 format=3 uid="uid://map_generator_scene"]
+
+[ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+[ext_resource type="Theme" uid="uid://canhs6wcwwphu" path="res://resources/theme/honk_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://scripts/core/procedural_terrain.gd" id="3_terrain"]
+
+[sub_resource type="GDScript" id="GDScript_map_generator"]
+script/source = "extends Control
+
+# =============================================================================
+# HONK MAGIC - Map Generator (Dev Tool)
+# =============================================================================
+# Herramienta para generar y guardar mapas procedurales.
+
+@onready var terrain: ProceduralTerrain = $MarginContainer/HBoxContainer/TerrainPreview/SubViewport/PreviewWorld/Terrain
+@onready var preview_camera: Camera2D = $MarginContainer/HBoxContainer/TerrainPreview/SubViewport/PreviewWorld/Camera2D
+@onready var preview_viewport: SubViewport = $MarginContainer/HBoxContainer/TerrainPreview/SubViewport
+@onready var preview_container: SubViewportContainer = $MarginContainer/HBoxContainer/TerrainPreview
+
+# UI Elements
+@onready var seed_spinbox: SpinBox = $MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/SeedContainer/SeedSpinBox
+@onready var width_spinbox: SpinBox = $MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/WidthContainer/WidthSpinBox
+@onready var height_spinbox: SpinBox = $MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/HeightContainer/HeightSpinBox
+@onready var frequency_slider: HSlider = $MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/FrequencyContainer/FrequencySlider
+@onready var frequency_label: Label = $MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/FrequencyContainer/FrequencyValue
+@onready var map_name_input: LineEdit = $MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/MapNameContainer/MapNameInput
+@onready var status_label: Label = $MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/StatusLabel
+@onready var maps_list: ItemList = $MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/MapsListContainer/MapsList
+
+
+func _ready() -> void:
+	_animate_entrance()
+	_refresh_maps_list()
+	_on_random_seed_pressed()
+
+	# Conectar señal de resize para ajustar el viewport
+	if preview_container:
+		preview_container.resized.connect(_on_preview_resized)
+
+	# Generar preview inicial (esperar a que el layout esté listo)
+	call_deferred(\"_on_generate_pressed\")
+
+
+func _animate_entrance() -> void:
+	modulate.a = 0.0
+	var tween := create_tween()
+	tween.tween_property(self, \"modulate:a\", 1.0, 0.3)
+
+
+func _refresh_maps_list() -> void:
+	if not maps_list:
+		return
+
+	maps_list.clear()
+	var maps := MapLoader.list_maps()
+	for map_name in maps:
+		maps_list.add_item(map_name)
+
+
+func _update_status(text: String) -> void:
+	if status_label:
+		status_label.text = text
+
+
+func _center_camera() -> void:
+	if preview_camera and terrain:
+		var bounds := terrain.get_map_bounds()
+		preview_camera.position = bounds.get_center()
+
+		# Obtener tamaño real del viewport container
+		var viewport_size := preview_container.size if preview_container else Vector2(800, 600)
+		var map_size := bounds.size
+
+		# Calcular zoom para llenar el espacio disponible
+		var zoom_x: float = viewport_size.x / map_size.x
+		var zoom_y: float = viewport_size.y / map_size.y
+		var zoom_level: float = minf(zoom_x, zoom_y) * 0.95
+		preview_camera.zoom = Vector2(zoom_level, zoom_level)
+
+		# Actualizar tamaño del SubViewport para que coincida con el container
+		if preview_viewport and preview_container:
+			preview_viewport.size = Vector2i(preview_container.size)
+
+
+func _on_preview_resized() -> void:
+	# Re-centrar cámara cuando el contenedor cambia de tamaño
+	if terrain and terrain.get_used_cells().size() > 0:
+		_center_camera()
+
+
+# ==================== UI Callbacks ====================
+
+func _on_generate_pressed() -> void:
+	if not terrain:
+		return
+
+	terrain.map_width = int(width_spinbox.value)
+	terrain.map_height = int(height_spinbox.value)
+	terrain.noise_frequency = frequency_slider.value
+	terrain.generate(int(seed_spinbox.value))
+
+	_center_camera()
+	_update_status(\"Mapa generado (seed: %d)\" % terrain.get_current_seed())
+
+
+func _on_random_seed_pressed() -> void:
+	seed_spinbox.value = randi() % 999999
+
+
+func _on_frequency_changed(value: float) -> void:
+	if frequency_label:
+		frequency_label.text = \"%.3f\" % value
+
+
+func _on_save_pressed() -> void:
+	if not terrain:
+		return
+
+	var map_name := map_name_input.text.strip_edges()
+	if map_name.is_empty():
+		_update_status(\"Error: Ingresa un nombre para el mapa\")
+		return
+
+	if MapLoader.save_map(terrain, map_name):
+		_update_status(\"Guardado en: %s/\" % map_name)
+		_refresh_maps_list()
+	else:
+		_update_status(\"Error al guardar el mapa\")
+
+
+func _on_load_pressed() -> void:
+	if not terrain or not maps_list:
+		return
+
+	var selected := maps_list.get_selected_items()
+	if selected.is_empty():
+		_update_status(\"Selecciona un mapa de la lista\")
+		return
+
+	var map_name := maps_list.get_item_text(selected[0])
+
+	if MapLoader.load_map(terrain, map_name):
+		_update_status(\"Cargado: %s\" % map_name)
+		map_name_input.text = map_name
+		seed_spinbox.value = terrain.get_current_seed()
+		width_spinbox.value = terrain.map_width
+		height_spinbox.value = terrain.map_height
+		_center_camera()
+	else:
+		_update_status(\"Error al cargar el mapa\")
+
+
+func _on_export_pressed() -> void:
+	if not terrain:
+		return
+
+	var map_name := map_name_input.text.strip_edges()
+	if map_name.is_empty():
+		_update_status(\"Error: Ingresa un nombre para el mapa\")
+		return
+
+	if terrain.get_used_cells().size() == 0:
+		_update_status(\"Error: Genera un mapa primero\")
+		return
+
+	if MapLoader.export_as_scene(terrain, map_name):
+		_update_status(\"Exportado en: %s/scene.tscn\" % map_name)
+	else:
+		_update_status(\"Error al exportar\")
+
+
+func _on_map_selected(index: int) -> void:
+	var map_name := maps_list.get_item_text(index)
+	map_name_input.text = map_name
+
+	# Cargar y mostrar el mapa automáticamente
+	if terrain and MapLoader.load_map(terrain, map_name):
+		seed_spinbox.value = terrain.get_current_seed()
+		width_spinbox.value = terrain.map_width
+		height_spinbox.value = terrain.map_height
+		_center_camera()
+		_update_status(\"Vista previa: %s\" % map_name)
+
+
+func _on_back_pressed() -> void:
+	SceneTransition.change_scene(\"res://scenes/debug/debug_menu.tscn\")
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		_on_back_pressed()
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.08, 0.06, 0.1, 1)
+shader_parameter/color_mid = Color(0.12, 0.1, 0.18, 1)
+shader_parameter/color_light = Color(0.1, 0.15, 0.2, 1)
+shader_parameter/color_accent = Color(0.0, 0.8, 0.7, 0.3)
+shader_parameter/fog_speed = 0.02
+shader_parameter/fog_scale = 12.0
+shader_parameter/fog_intensity = 0.25
+shader_parameter/particle_density = 20.0
+shader_parameter/particle_size = 0.003
+shader_parameter/particle_glow = 0.6
+
+[node name="MapGenerator" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = SubResource("GDScript_map_generator")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+material = SubResource("ShaderMaterial_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 30
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="ControlPanel" type="PanelContainer" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/ControlPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.961, 0.831, 1)
+theme_override_font_sizes/font_size = 24
+text = "MAP GENERATOR"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="SeedContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="SeedLabel" type="Label" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/SeedContainer"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Seed:"
+
+[node name="SeedSpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/SeedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 999999.0
+value = 12345.0
+
+[node name="RandomBtn" type="Button" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/SeedContainer"]
+layout_mode = 2
+text = "Rand"
+
+[node name="WidthContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="WidthLabel" type="Label" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/WidthContainer"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Ancho:"
+
+[node name="WidthSpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/WidthContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 20.0
+max_value = 500.0
+value = 80.0
+
+[node name="HeightContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="HeightLabel" type="Label" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/HeightContainer"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Alto:"
+
+[node name="HeightSpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/HeightContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 20.0
+max_value = 500.0
+value = 60.0
+
+[node name="FrequencyContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="FrequencyLabel" type="Label" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/FrequencyContainer"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Freq:"
+
+[node name="FrequencySlider" type="HSlider" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/FrequencyContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.01
+max_value = 0.1
+step = 0.005
+value = 0.04
+
+[node name="FrequencyValue" type="Label" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/FrequencyContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "0.040"
+
+[node name="GenerateBtn" type="Button" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = "PrimaryButton"
+text = "GENERAR MAPA"
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="MapNameContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="MapNameLabel" type="Label" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/MapNameContainer"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Nombre:"
+
+[node name="MapNameInput" type="LineEdit" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/MapNameContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "default_map"
+
+[node name="SaveLoadContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SaveBtn" type="Button" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/SaveLoadContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "GUARDAR"
+
+[node name="LoadBtn" type="Button" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/SaveLoadContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CARGAR"
+
+[node name="ExportBtn" type="Button" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+text = "EXPORTAR COMO ESCENA (.tscn)"
+
+[node name="HSeparator3" type="HSeparator" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="MapsLabel" type="Label" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+text = "Mapas guardados:"
+
+[node name="MapsListContainer" type="PanelContainer" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MapsList" type="ItemList" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/MapsListContainer"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Listo"
+horizontal_alignment = 1
+
+[node name="BackBtn" type="Button" parent="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+text = "VOLVER"
+
+[node name="TerrainPreview" type="SubViewportContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="MarginContainer/HBoxContainer/TerrainPreview"]
+handle_input_locally = false
+size = Vector2i(800, 600)
+render_target_update_mode = 4
+
+[node name="PreviewWorld" type="Node2D" parent="MarginContainer/HBoxContainer/TerrainPreview/SubViewport"]
+
+[node name="Terrain" type="TileMapLayer" parent="MarginContainer/HBoxContainer/TerrainPreview/SubViewport/PreviewWorld"]
+texture_filter = 0
+script = ExtResource("3_terrain")
+
+[node name="Camera2D" type="Camera2D" parent="MarginContainer/HBoxContainer/TerrainPreview/SubViewport/PreviewWorld"]
+position = Vector2(1280, 960)
+zoom = Vector2(0.5, 0.5)
+
+[connection signal="pressed" from="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/SeedContainer/RandomBtn" to="." method="_on_random_seed_pressed"]
+[connection signal="pressed" from="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/GenerateBtn" to="." method="_on_generate_pressed"]
+[connection signal="value_changed" from="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/FrequencyContainer/FrequencySlider" to="." method="_on_frequency_changed"]
+[connection signal="pressed" from="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/SaveLoadContainer/SaveBtn" to="." method="_on_save_pressed"]
+[connection signal="pressed" from="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/SaveLoadContainer/LoadBtn" to="." method="_on_load_pressed"]
+[connection signal="pressed" from="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/ExportBtn" to="." method="_on_export_pressed"]
+[connection signal="item_selected" from="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/MapsListContainer/MapsList" to="." method="_on_map_selected"]
+[connection signal="pressed" from="MarginContainer/HBoxContainer/ControlPanel/VBoxContainer/BackBtn" to="." method="_on_back_pressed"]

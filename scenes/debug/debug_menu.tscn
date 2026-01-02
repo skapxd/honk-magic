@@ -24,6 +24,10 @@ func _on_test_player_pressed() -> void:
 	SceneTransition.change_scene(\"res://scenes/debug/test_player.tscn\")
 
 
+func _on_map_generator_pressed() -> void:
+	SceneTransition.change_scene(\"res://scenes/dev_tools/map_generator.tscn\")
+
+
 func _on_back_pressed() -> void:
 	SceneTransition.change_scene(\"res://scenes/ui/main_menu.tscn\")
 
@@ -143,6 +147,13 @@ layout_mode = 2
 disabled = true
 text = "DEBUG_TEST_CAPTURE"
 
+[node name="MapGeneratorButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(280, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.961, 0.831, 1)
+text = "DEBUG_MAP_GENERATOR"
+
 [node name="Spacer2" type="Control" parent="MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
@@ -155,4 +166,5 @@ size_flags_horizontal = 4
 text = "MENU_BACK"
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestPlayerButton" to="." method="_on_test_player_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/MapGeneratorButton" to="." method="_on_map_generator_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_pressed"]

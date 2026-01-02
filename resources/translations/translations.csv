@@ -15,6 +15,7 @@ DEBUG_TEST_SPELLS,Test Hechizos,Test Spells,Test Feitiços
 DEBUG_TEST_COMBAT,Test Combate,Test Combat,Test Combate
 DEBUG_TEST_RTS,Test RTS,Test RTS,Test RTS
 DEBUG_TEST_CAPTURE,Test Captura,Test Capture,Test Captura
+DEBUG_MAP_GENERATOR,Generador de Mapas,Map Generator,Gerador de Mapas
 OPTIONS_TITLE,OPCIONES,OPTIONS,OPÇÕES
 OPTIONS_LANGUAGE,Idioma,Language,Idioma
 OPTIONS_LANGUAGE_ES,Español,Spanish,Espanhol

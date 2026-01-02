@@ -1,0 +1,54 @@
+keys,es,en,pt
+GAME_TITLE,HONK MAGIC,HONK MAGIC,HONK MAGIC
+GAME_SUBTITLE,Rogue-like Magic,Rogue-like Magic,Rogue-like Magic
+TITLE_PRESS_ANY_KEY,Presiona cualquier tecla para continuar,Press any key to continue,Pressione qualquer tecla para continuar
+MENU_ADVENTURE,AVENTURA,ADVENTURE,AVENTURA
+MENU_TUTORIAL,TUTORIAL,TUTORIAL,TUTORIAL
+MENU_OPTIONS,OPCIONES,OPTIONS,OPÇÕES
+MENU_EXIT,SALIR,EXIT,SAIR
+MENU_BACK,VOLVER,BACK,VOLTAR
+OPTIONS_TITLE,OPCIONES,OPTIONS,OPÇÕES
+OPTIONS_LANGUAGE,Idioma,Language,Idioma
+OPTIONS_LANGUAGE_ES,Español,Spanish,Espanhol
+OPTIONS_LANGUAGE_EN,Inglés,English,Inglês
+OPTIONS_LANGUAGE_PT,Portugués,Portuguese,Português
+OPTIONS_FULLSCREEN,Pantalla completa,Fullscreen,Tela cheia
+OPTIONS_ON,Activado,On,Ativado
+OPTIONS_OFF,Desactivado,Off,Desativado
+SAVE_SELECT,Selecciona Partida,Select Save,Selecionar Jogo
+SAVE_NEW,Nueva Partida,New Game,Novo Jogo
+SAVE_PLAY,Jugar,Play,Jogar
+SAVE_CREATE,Crear,Create,Criar
+SAVE_NAME_PROMPT,¿Cómo te llamas joven mago?,What is your name young mage?,Qual é o seu nome jovem mago?
+SAVE_START,Comenzar,Start,Começar
+SAVE_CANCEL,Cancelar,Cancel,Cancelar
+HUD_HP,HP,HP,HP
+HUD_MP,MP,MP,MP
+PAUSE_TITLE,Pausa,Pause,Pausa
+PAUSE_CONTINUE,Continuar,Continue,Continuar
+PAUSE_MAIN_MENU,Menú Principal,Main Menu,Menu Principal
+GRIMOIRE_TITLE,GRIMORIO,GRIMOIRE,GRIMÓRIO
+GRIMOIRE_RUNES,Runas,Runes,Runas
+GRIMOIRE_AFFINITY,Afinidad,Affinity,Afinidade
+GRIMOIRE_MONSTERS,Monstruos,Monsters,Monstros
+GRIMOIRE_SELECTED_RUNE,Runa Seleccionada,Selected Rune,Runa Selecionada
+GRIMOIRE_EFFECT,Efecto,Effect,Efeito
+GRIMOIRE_COST,Costo,Cost,Custo
+GRIMOIRE_CAPTURED,Monstruos Capturados,Captured Monsters,Monstros Capturados
+GRIMOIRE_INVOKE,INVOCAR,SUMMON,INVOCAR
+GRIMOIRE_CLOSE,Cerrar,Close,Fechar
+RUNE_FIRE,Fuego,Fire,Fogo
+RUNE_WATER,Agua,Water,Água
+RUNE_WIND,Viento,Wind,Vento
+RUNE_EARTH,Tierra,Earth,Terra
+RUNE_LIGHT,Luz,Light,Luz
+RUNE_DARK,Oscuridad,Darkness,Escuridão
+SPELL_FIREBALL,Bola de fuego,Fireball,Bola de fogo
+SPELL_WATERBALL,Bola de agua,Water ball,Bola de água
+SPELL_WINDGUST,Ráfaga de viento,Wind gust,Rajada de vento
+SPELL_EARTHWALL,Muro de tierra,Earth wall,Muro de terra
+SPELL_HEAL,Curación,Heal,Cura
+SPELL_CAPTURE,Captura,Capture,Captura
+CAPTURE_SUCCESS,¡Captura exitosa!,Capture successful!,Captura bem-sucedida!
+CAPTURE_FAIL,No está lo suficientemente débil,Not weak enough,Não está fraco o suficiente
+GAME_OVER,Fin del Juego,Game Over,Fim de Jogo

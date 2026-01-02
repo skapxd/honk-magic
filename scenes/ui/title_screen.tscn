@@ -35,13 +35,13 @@ func _ready() -> void:
 
 func _setup_labels() -> void:
 	if title_label:
-		title_label.text = \"HONK MAGIC\"
+		title_label.text = tr(\"GAME_TITLE\")
 
 	if subtitle_label:
-		subtitle_label.text = \"\"
+		subtitle_label.text = tr(\"GAME_SUBTITLE\")
 
 	if prompt_label:
-		prompt_label.text = \"Presiona cualquier tecla para continuar\"
+		prompt_label.text = tr(\"TITLE_PRESS_ANY_KEY\")
 		prompt_label.modulate.a = 0.0
 
 
@@ -79,8 +79,9 @@ func _go_to_menu() -> void:
 	if _pulse_tween:
 		_pulse_tween.kill()
 
-	# TODO: Usar GameManager cuando esté configurado como autoload
-	get_tree().change_scene_to_file(\"res://scenes/ui/main_menu.tscn\")
+	# Deshabilitar input para evitar múltiples transiciones
+	set_process_input(false)
+	SceneTransition.change_scene(\"res://scenes/ui/main_menu.tscn\")
 "
 
 [sub_resource type="LabelSettings" id="LabelSettings_title"]
@@ -160,7 +161,7 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 0.5)
 theme_override_font_sizes/font_size = 16
-text = "v0.1.0"
+text = "v0.2.0"
 horizontal_alignment = 2
 
 [connection signal="ready" from="." to="." method="_ready"]

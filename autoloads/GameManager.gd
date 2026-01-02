@@ -18,29 +18,44 @@ enum GameState {
 var current_state: GameState = GameState.TITLE
 var _is_transitioning: bool = false
 
+const CONFIG_PATH := "user://settings.cfg"
+var _config := ConfigFile.new()
+
 # -----------------------------------------------------------------------------
 # Lifecycle
 # -----------------------------------------------------------------------------
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_setup_window_mode()
+	_load_settings()
+	_apply_settings()
 
 
-func _setup_window_mode() -> void:
-	# En el editor: mantener ventana normal para desarrollo cómodo
-	# En export: fullscreen
-	if OS.has_feature("editor"):
-		# Debug mode - windowed para desarrollo
-		return
+func _load_settings() -> void:
+	var err := _config.load(CONFIG_PATH)
+	if err != OK:
+		# Create defaults
+		_config.set_value("audio", "master_volume", 1.0)
+		_config.set_value("video", "fullscreen", not OS.has_feature("editor"))
+		_config.set_value("game", "locale", OS.get_locale_language())
+		_config.save(CONFIG_PATH)
 
-	# Standalone build (exportado)
-	if OS.has_feature("web"):
-		# Web: Fullscreen (borderless)
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-	else:
-		# Desktop (Windows/Linux/macOS): Exclusive Fullscreen
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+
+func _apply_settings() -> void:
+	# Apply language
+	var locale: String = _config.get_value("game", "locale", OS.get_locale_language())
+	TranslationServer.set_locale(locale)
+
+	# Apply fullscreen (only in export, not in editor)
+	if not OS.has_feature("editor"):
+		var fullscreen: bool = _config.get_value("video", "fullscreen", true)
+		if fullscreen:
+			if OS.has_feature("web"):
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+			else:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+		else:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
 
 # -----------------------------------------------------------------------------

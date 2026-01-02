@@ -1,0 +1,233 @@
+[gd_scene load_steps=5 format=3 uid="uid://cwk0p375au8xl"]
+
+[ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+[ext_resource type="Theme" path="res://resources/theme/honk_theme.tres" id="2_theme"]
+
+[sub_resource type="GDScript" id="GDScript_options"]
+script/source = "extends Control
+
+# =============================================================================
+# HONK MAGIC - Options Menu
+# =============================================================================
+
+@export var language_dropdown: OptionButton
+@export var fullscreen_check: CheckButton
+
+const CONFIG_PATH := \"user://settings.cfg\"
+
+# Locale codes in same order as dropdown items
+const LOCALES := [\"es\", \"en\", \"pt\"]
+
+var _config := ConfigFile.new()
+
+
+func _ready() -> void:
+	_load_settings()
+	_setup_language_dropdown()
+	_update_ui()
+	_animate_entrance()
+
+
+func _animate_entrance() -> void:
+	modulate.a = 0.0
+	var tween := create_tween()
+	tween.tween_property(self, \"modulate:a\", 1.0, 0.3)
+
+
+func _setup_language_dropdown() -> void:
+	if not language_dropdown:
+		return
+
+	language_dropdown.clear()
+	language_dropdown.add_item(tr(\"OPTIONS_LANGUAGE_ES\"), 0)
+	language_dropdown.add_item(tr(\"OPTIONS_LANGUAGE_EN\"), 1)
+	language_dropdown.add_item(tr(\"OPTIONS_LANGUAGE_PT\"), 2)
+
+
+func _load_settings() -> void:
+	var err := _config.load(CONFIG_PATH)
+	if err != OK:
+		# Defaults
+		_config.set_value(\"audio\", \"master_volume\", 1.0)
+		_config.set_value(\"video\", \"fullscreen\", not OS.has_feature(\"editor\"))
+		_config.set_value(\"game\", \"locale\", OS.get_locale_language())
+
+
+func _save_settings() -> void:
+	_config.save(CONFIG_PATH)
+
+
+func _update_ui() -> void:
+	# Update language dropdown
+	if language_dropdown:
+		var current_locale := TranslationServer.get_locale()
+		for i in range(LOCALES.size()):
+			if current_locale.begins_with(LOCALES[i]):
+				language_dropdown.select(i)
+				break
+
+	# Update fullscreen check
+	if fullscreen_check:
+		var is_fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN or DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+		fullscreen_check.button_pressed = is_fullscreen
+
+
+func _on_language_selected(index: int) -> void:
+	if index < 0 or index >= LOCALES.size():
+		return
+
+	var locale: String = LOCALES[index]
+	TranslationServer.set_locale(locale)
+	_config.set_value(\"game\", \"locale\", locale)
+	_save_settings()
+
+	# Reload scene to update all translated texts
+	get_tree().reload_current_scene()
+
+
+func _on_fullscreen_toggled(toggled_on: bool) -> void:
+	if toggled_on:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+
+	_config.set_value(\"video\", \"fullscreen\", toggled_on)
+	_save_settings()
+
+
+func _on_back_pressed() -> void:
+	SceneTransition.change_scene(\"res://scenes/ui/main_menu.tscn\")
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		_on_back_pressed()
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.0588235, 0.0588235, 0.101961, 1)
+shader_parameter/color_mid = Color(0.101961, 0.101961, 0.180392, 1)
+shader_parameter/color_light = Color(0.0862745, 0.129412, 0.243137, 1)
+shader_parameter/color_accent = Color(0.482353, 0.172549, 0.74902, 0.3)
+shader_parameter/fog_speed = 0.02
+shader_parameter/fog_scale = 12.0
+shader_parameter/fog_intensity = 0.25
+shader_parameter/particle_density = 20.0
+shader_parameter/particle_size = 0.003
+shader_parameter/particle_glow = 0.6
+
+[node name="OptionsMenu" type="Control" node_paths=PackedStringArray("language_dropdown", "fullscreen_check")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = SubResource("GDScript_options")
+language_dropdown = NodePath("MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer/LanguageSection/LanguageDropdown")
+fullscreen_check = NodePath("MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer/FullscreenSection/FullscreenCheck")
+
+[node name="Background" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_bg")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 100
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 100
+theme_override_constants/margin_bottom = 50
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+auto_translate_mode = 1
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_colors/font_outline_color = Color(0.482353, 0.172549, 0.74902, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 56
+text = "OPTIONS_TITLE"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="OptionsContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/OptionsContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 30
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="LanguageSection" type="HBoxContainer" parent="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="LanguageLabel" type="Label" parent="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer/LanguageSection"]
+auto_translate_mode = 1
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 20
+text = "OPTIONS_LANGUAGE"
+
+[node name="LanguageDropdown" type="OptionButton" parent="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer/LanguageSection"]
+custom_minimum_size = Vector2(180, 48)
+layout_mode = 2
+
+[node name="Separator" type="HSeparator" parent="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="FullscreenSection" type="HBoxContainer" parent="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="FullscreenLabel" type="Label" parent="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer/FullscreenSection"]
+auto_translate_mode = 1
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 20
+text = "OPTIONS_FULLSCREEN"
+
+[node name="FullscreenCheck" type="CheckButton" parent="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer/FullscreenSection"]
+layout_mode = 2
+
+[node name="Spacer2" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(200, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "MENU_BACK"
+
+[connection signal="item_selected" from="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer/LanguageSection/LanguageDropdown" to="." method="_on_language_selected"]
+[connection signal="toggled" from="MarginContainer/VBoxContainer/OptionsContainer/MarginContainer/VBoxContainer/FullscreenSection/FullscreenCheck" to="." method="_on_fullscreen_toggled"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_pressed"]

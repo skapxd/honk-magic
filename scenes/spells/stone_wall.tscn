@@ -9,12 +9,15 @@ script/source = "extends Node2D
 # Muro de piedra que bloquea el paso.
 
 @export var duration: float = 8.0
-@export var wall_width: float = 20.0
+@export var wall_width: float = 40.0
 @export var wall_color: Color = Color(\"#bc6c25\")
+@export var push_margin: float = 10.0  # Margen extra al empujar
 
 var caster: Node2D = null
 var start_pos: Vector2 = Vector2.ZERO
 var end_pos: Vector2 = Vector2.ZERO
+var wall_direction: Vector2 = Vector2.ZERO  # Direccion del muro (normalizada)
+var wall_normal: Vector2 = Vector2.ZERO  # Perpendicular al muro
 
 @onready var line: Line2D = $Line2D
 @onready var collision: CollisionShape2D = $StaticBody2D/CollisionShape2D
@@ -30,6 +33,10 @@ func setup(p_start: Vector2, p_end: Vector2) -> void:
 	start_pos = p_start
 	end_pos = p_end
 
+	# Calcular direccion y normal del muro
+	wall_direction = (end_pos - start_pos).normalized()
+	wall_normal = Vector2(-wall_direction.y, wall_direction.x)  # Perpendicular
+
 	# Posicionar en el centro
 	global_position = (start_pos + end_pos) / 2.0
 
@@ -43,16 +50,66 @@ func setup(p_start: Vector2, p_end: Vector2) -> void:
 		line.width = wall_width
 		line.default_color = wall_color
 
-	# Configurar colision
+	var wall_length := start_pos.distance_to(end_pos)
+	var angle := (end_pos - start_pos).angle()
+
+	# Configurar colision del StaticBody
 	if collision:
 		var shape := RectangleShape2D.new()
-		var wall_length := start_pos.distance_to(end_pos)
 		shape.size = Vector2(wall_length, wall_width)
 		collision.shape = shape
-
-		# Rotar para alinear con la linea
-		var angle := (end_pos - start_pos).angle()
 		collision.get_parent().rotation = angle
+
+	# Empujar entidades superpuestas usando consulta de fisica directa
+	_push_overlapping_bodies()
+
+
+func _push_overlapping_bodies() -> void:
+	var wall_length: float = start_pos.distance_to(end_pos)
+	var angle: float = (end_pos - start_pos).angle()
+
+	# Crear query de fisica
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsShapeQueryParameters2D.new()
+
+	var query_shape := RectangleShape2D.new()
+	query_shape.size = Vector2(wall_length, wall_width + push_margin * 2)
+	query.shape = query_shape
+	query.transform = Transform2D(angle, global_position)
+	query.collision_mask = 1  # Detectar layer 1 (player)
+
+	var results := space_state.intersect_shape(query)
+	print(\"[StoneWall] Detectadas %d entidades superpuestas\" % results.size())
+
+	for result in results:
+		var body: Node2D = result.collider
+		if body is CharacterBody2D:
+			_push_body_out(body)
+
+
+func _push_body_out(body: CharacterBody2D) -> void:
+	# Calcular en que lado del muro esta el cuerpo
+	var to_body: Vector2 = body.global_position - global_position
+	var side: float = sign(to_body.dot(wall_normal))
+	if side == 0:
+		side = 1.0  # Default a un lado si esta exactamente en el centro
+
+	# Calcular punto mas cercano en la linea del muro
+	var t: float = to_body.dot(wall_direction)
+	var wall_length: float = start_pos.distance_to(end_pos)
+	t = clampf(t, -wall_length / 2.0, wall_length / 2.0)
+
+	# Posicion de salida: perpendicular al muro + margen
+	var exit_distance: float = (wall_width / 2.0) + push_margin + 30.0  # 30 = radio aprox del player
+	var exit_pos: Vector2 = global_position + wall_direction * t + wall_normal * side * exit_distance
+
+	print(\"[StoneWall] Empujando %s de %s a %s\" % [body.name, body.global_position, exit_pos])
+
+	# Transicion suave como deslizandose
+	var tween := create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(body, \"global_position\", exit_pos, 0.25)
 
 
 func _on_timeout() -> void:
@@ -63,19 +120,19 @@ func _on_timeout() -> void:
 "
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
-size = Vector2(100, 20)
+size = Vector2(100, 40)
 
 [node name="StoneWall" type="Node2D"]
 script = SubResource("GDScript_stone_wall")
 
 [node name="Line2D" type="Line2D" parent="."]
-width = 20.0
+width = 40.0
 default_color = Color(0.737255, 0.423529, 0.145098, 1)
 begin_cap_mode = 2
 end_cap_mode = 2
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
-collision_layer = 6
+collision_layer = 3
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
 shape = SubResource("RectangleShape2D_wall")

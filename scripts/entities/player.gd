@@ -45,12 +45,22 @@ func _ready() -> void:
 	_create_hexagon_visual()
 	_update_selection_visual()
 
+	print("[Player] Posicion inicial: %s" % global_position)
+
 	# Inicializar HP/MP desde SaveManager si existe
 	if SaveManager.current_data:
+		print("[Player] Cargando desde SaveManager - posicion guardada: %s" % SaveManager.current_data.position)
 		hp = SaveManager.current_data.hp_actual
 		mp = SaveManager.current_data.mp_actual
 		global_position = SaveManager.current_data.position
 		target_position = global_position
+		print("[Player] Nueva posicion: %s" % global_position)
+
+		# Resetear smoothing de la camara para evitar el "salto" visual
+		var camera := get_node_or_null("Camera2D") as Camera2D
+		if camera:
+			print("[Player] Reseteando smoothing de camara")
+			camera.reset_smoothing()
 
 	# Emitir valores iniciales
 	hp_changed.emit(hp, max_hp)

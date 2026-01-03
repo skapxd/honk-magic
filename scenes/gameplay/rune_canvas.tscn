@@ -103,7 +103,7 @@ func activate() -> void:
 	if dimmer:
 		dimmer.modulate.a = 0.0
 		var tween := create_tween()
-		tween.tween_property(dimmer, \"modulate:a\", 1.0, 0.15)
+		tween.tween_property(dimmer, \"modulate:a\", 1.0, 0.05)
 
 
 func deactivate() -> void:
@@ -116,7 +116,7 @@ func deactivate() -> void:
 	# Animar salida (usando dimmer)
 	if dimmer:
 		var tween := create_tween()
-		tween.tween_property(dimmer, \"modulate:a\", 0.0, 0.15)
+		tween.tween_property(dimmer, \"modulate:a\", 0.0, 0.05)
 		tween.tween_callback(func():
 			hide()
 			set_process_input(false)
@@ -181,7 +181,7 @@ func _finish_and_recognize() -> void:
 
 	if points.size() < 10:
 		_update_feedback(\"Muy corto\", Color(\"#ff6b6b\"))
-		await get_tree().create_timer(0.3).timeout
+		await get_tree().create_timer(0.1).timeout
 		rune_cancelled.emit()
 		deactivate()
 		return
@@ -198,13 +198,12 @@ func _finish_and_recognize() -> void:
 		if line_2d:
 			line_2d.default_color = color
 
-		# Emitir senal y cerrar despues de un momento
-		await get_tree().create_timer(0.5).timeout
+		# Emitir senal inmediatamente para gameplay frenetico
 		rune_recognized.emit(rune_name, score)
 		deactivate()
 	else:
 		_update_feedback(\"No reconocido (%d%%)\" % int(score * 100), Color(\"#ff6b6b\"))
-		await get_tree().create_timer(0.3).timeout
+		await get_tree().create_timer(0.1).timeout
 		rune_cancelled.emit()
 		deactivate()
 

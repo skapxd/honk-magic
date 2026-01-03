@@ -102,11 +102,30 @@ func _initialize_terrain() -> void:
 		# Generar nuevo mapa
 		terrain.generate()
 
-	# Posicionar jugador en spawn valido
+	# Posicionar jugador - usar posicion guardada si existe, sino spawn valido
 	if player:
-		var spawn_pos := terrain.find_spawn_position()
-		player.global_position = spawn_pos
-		player.target_position = spawn_pos
+		var has_saved_position := SaveManager.current_data != null and SaveManager.current_data.position != Vector2.ZERO
+		if has_saved_position:
+			print(\"[MainWorld] Usando posicion guardada: %s\" % SaveManager.current_data.position)
+			# La posicion ya fue cargada en player._ready()
+		else:
+			var spawn_pos := terrain.find_spawn_position()
+			print(\"[MainWorld] Nueva partida, spawn en: %s\" % spawn_pos)
+			player.global_position = spawn_pos
+			player.target_position = spawn_pos
+
+		# Forzar camara a posicion correcta sin smoothing
+		var camera := player.get_node_or_null(\"Camera2D\") as Camera2D
+		if camera:
+			print(\"[MainWorld] Forzando posicion de camara\")
+			# Deshabilitar smoothing, forzar posicion, luego rehabilitar
+			var was_smoothing := camera.position_smoothing_enabled
+			camera.position_smoothing_enabled = false
+			camera.reset_smoothing()
+			# Esperar un frame y rehabilitar
+			await get_tree().process_frame
+			camera.position_smoothing_enabled = was_smoothing
+			print(\"[MainWorld] Camara lista\")
 
 
 func _on_terrain_generated(width: int, height: int) -> void:
@@ -345,6 +364,10 @@ func _on_generate_pressed() -> void:
 		var spawn_pos := terrain.find_spawn_position()
 		player.global_position = spawn_pos
 		player.target_position = spawn_pos
+		# Resetear camara
+		var camera := player.get_node_or_null(\"Camera2D\") as Camera2D
+		if camera:
+			camera.reset_smoothing()
 
 
 func _on_random_seed_pressed() -> void:
@@ -376,6 +399,10 @@ func _on_load_map_pressed() -> void:
 			var spawn_pos := terrain.find_spawn_position()
 			player.global_position = spawn_pos
 			player.target_position = spawn_pos
+			# Resetear camara
+			var camera := player.get_node_or_null(\"Camera2D\") as Camera2D
+			if camera:
+				camera.reset_smoothing()
 
 
 # ==================== Save & Exit ====================

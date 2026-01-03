@@ -1,0 +1,221 @@
+[gd_scene load_steps=8 format=3 uid="uid://test_pause_scene"]
+
+[ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+[ext_resource type="Script" path="res://scripts/entities/player.gd" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://enemy_mage_scene" path="res://scenes/entities/enemy_mage.tscn" id="3_mage"]
+[ext_resource type="PackedScene" uid="uid://pause_menu_scene" path="res://scenes/ui/pause_menu.tscn" id="4_pause"]
+[ext_resource type="PackedScene" uid="uid://game_over_scene" path="res://scenes/ui/game_over.tscn" id="5_game_over"]
+
+[sub_resource type="GDScript" id="GDScript_test"]
+script/source = "extends Node2D
+
+# =============================================================================
+# HONK MAGIC - Test Pause & Game Over
+# =============================================================================
+# Escena de prueba para menú de pausa y game over.
+
+@onready var player: CharacterBody2D = $Player
+@onready var pause_menu: CanvasLayer = $PauseMenu
+@onready var game_over: CanvasLayer = $GameOver
+@onready var status_label: Label = $UI/StatusLabel
+@onready var hp_label: Label = $UI/HPLabel
+
+var _game_over: bool = false
+var _play_time: float = 0.0
+
+
+func _ready() -> void:
+	print(\"[TestPause] Escena de prueba de pausa iniciada\")
+
+	if player:
+		player.hp_changed.connect(_on_hp_changed)
+		player.died.connect(_on_player_died)
+		_on_hp_changed(player.hp, player.max_hp)
+
+	_update_status(\"WASD=mover ESC=pausa K=dañar jugador\")
+
+
+func _process(delta: float) -> void:
+	if _game_over:
+		return
+
+	_play_time += delta
+
+	# Movimiento WASD
+	if player and not pause_menu.is_paused:
+		var input_dir := Vector2.ZERO
+		if Input.is_action_pressed(\"ui_up\") or Input.is_key_pressed(KEY_W):
+			input_dir.y -= 1
+		if Input.is_action_pressed(\"ui_down\") or Input.is_key_pressed(KEY_S):
+			input_dir.y += 1
+		if Input.is_action_pressed(\"ui_left\") or Input.is_key_pressed(KEY_A):
+			input_dir.x -= 1
+		if Input.is_action_pressed(\"ui_right\") or Input.is_key_pressed(KEY_D):
+			input_dir.x += 1
+
+		if input_dir != Vector2.ZERO:
+			input_dir = input_dir.normalized()
+			player.velocity = input_dir * player.speed
+			player.move_and_slide()
+			if player.visual:
+				player.visual.rotation = lerp_angle(player.visual.rotation, input_dir.angle() + PI / 2, 0.15)
+
+
+func _input(event: InputEvent) -> void:
+	if _game_over or pause_menu.is_paused:
+		return
+
+	# K para dañar al jugador (para probar game over)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_K:
+		if player:
+			player.take_damage(25, null)
+			print(\"[TestPause] Jugador dañado - HP: %d\" % player.hp)
+
+
+func _on_hp_changed(current: int, max_hp: int) -> void:
+	if hp_label:
+		hp_label.text = \"HP: %d/%d\" % [current, max_hp]
+
+
+func _on_player_died() -> void:
+	if _game_over:
+		return
+
+	_game_over = true
+	print(\"[TestPause] Jugador muerto - Game Over\")
+
+	if game_over:
+		game_over.show_game_over({
+			\"monsters_lost\": 0,
+			\"monsters_kept\": 0,
+			\"time_played\": _play_time
+		})
+
+
+func _update_status(text: String) -> void:
+	if status_label:
+		status_label.text = text
+
+
+func _on_spawn_enemy_pressed() -> void:
+	var scene := load(\"res://scenes/entities/enemy_mage.tscn\") as PackedScene
+	if scene and player:
+		var enemy := scene.instantiate()
+		add_child(enemy)
+		var offset := Vector2(randf_range(-200, 200), randf_range(-200, 200))
+		if offset.length() < 100:
+			offset = offset.normalized() * 150
+		enemy.global_position = player.global_position + offset
+		print(\"[TestPause] Enemigo spawneado\")
+
+
+func _on_heal_pressed() -> void:
+	if player:
+		player.hp = player.max_hp
+		print(\"[TestPause] Jugador curado\")
+
+
+func _on_damage_pressed() -> void:
+	if player:
+		player.take_damage(25, null)
+		print(\"[TestPause] Jugador dañado\")
+"
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 30.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.1, 0.08, 0.12, 1)
+shader_parameter/color_mid = Color(0.15, 0.12, 0.18, 1)
+shader_parameter/color_light = Color(0.12, 0.1, 0.15, 1)
+shader_parameter/color_accent = Color(0.9, 0.2, 0.2, 0.3)
+shader_parameter/fog_speed = 0.02
+shader_parameter/fog_scale = 12.0
+shader_parameter/fog_intensity = 0.25
+
+[node name="TestPause" type="Node2D"]
+script = SubResource("GDScript_test")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -100
+material = SubResource("ShaderMaterial_bg")
+offset_left = -2000.0
+offset_top = -2000.0
+offset_right = 2000.0
+offset_bottom = 2000.0
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(500, 400)
+script = ExtResource("2_player")
+
+[node name="Visual" type="Polygon2D" parent="Player"]
+color = Color(0.878431, 0.878431, 0.878431, 1)
+polygon = PackedVector2Array(26, -15, 26, 15, 0, 30, -26, 15, -26, -15, 0, -30)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_player")
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position_smoothing_enabled = true
+
+[node name="EnemyMage" parent="." instance=ExtResource("3_mage")]
+position = Vector2(500, 850)
+
+[node name="PauseMenu" parent="." instance=ExtResource("4_pause")]
+
+[node name="GameOver" parent="." instance=ExtResource("5_game_over")]
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="StatusLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 600.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0.9, 0.2, 0.2, 1)
+theme_override_font_sizes/font_size = 18
+text = "Test Pause & Game Over"
+
+[node name="HPLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 50.0
+offset_right = 200.0
+offset_bottom = 80.0
+theme_override_colors/font_color = Color(0.9, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 18
+text = "HP: 100/100"
+
+[node name="HelpLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 90.0
+offset_right = 400.0
+offset_bottom = 150.0
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "ESC: Pausar juego
+K: Dañar jugador (-25 HP)
+Deja que los enemigos te maten para Game Over"
+
+[node name="ButtonPanel" type="VBoxContainer" parent="UI"]
+offset_left = 20.0
+offset_top = 170.0
+offset_right = 150.0
+offset_bottom = 290.0
+
+[node name="SpawnButton" type="Button" parent="UI/ButtonPanel"]
+layout_mode = 2
+text = "Spawn Enemigo"
+
+[node name="HealButton" type="Button" parent="UI/ButtonPanel"]
+layout_mode = 2
+text = "Curar Jugador"
+
+[node name="DamageButton" type="Button" parent="UI/ButtonPanel"]
+layout_mode = 2
+text = "Dañar Jugador"
+
+[connection signal="pressed" from="UI/ButtonPanel/SpawnButton" to="." method="_on_spawn_enemy_pressed"]
+[connection signal="pressed" from="UI/ButtonPanel/HealButton" to="." method="_on_heal_pressed"]
+[connection signal="pressed" from="UI/ButtonPanel/DamageButton" to="." method="_on_damage_pressed"]

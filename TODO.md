@@ -111,6 +111,7 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 - [x] `test_enemies.tscn` - Combate player vs enemigos (Entregable 9)
 - [x] `test_rts.tscn` - Selección y comandos de unidades (Entregable 10)
 - [x] `test_capture.tscn` - Captura de monstruos (Entregable 11)
+- [x] `test_pause.tscn` - Pausa y Game Over (Entregable 13)
 
 ---
 
@@ -373,20 +374,21 @@ resources/maps/
 
 ---
 
-## Entregable 13: Pausa + Game Over
+## Entregable 13: Pausa + Game Over ✅
 **Objetivo:** Menú de pausa y condición de derrota
 **Tag:** `v0.13.0-pause`
 
 ### Tareas:
-- [ ] Crear `scenes/ui/pause_menu.tscn`:
+- [x] Crear `scenes/ui/pause_menu.tscn`:
   - Pausa el juego (ESC)
   - Opciones: Continuar, Opciones, Menú Principal
-- [ ] Implementar muerte del jugador:
+- [x] Implementar muerte del jugador:
   - HP = 0 → Game Over
   - Pierde monstruos invocados
   - Conserva monstruos en reserva y equipo
-- [ ] Crear `scenes/ui/game_over.tscn`
-- [ ] Volver al menú principal o reiniciar
+- [x] Crear `scenes/ui/game_over.tscn`
+- [x] Volver al menú principal o reiniciar
+- [x] Integrar con test_capture.tscn
 
 **Criterio de aceptación:** ESC pausa, muerte muestra game over, persistencia correcta.
 

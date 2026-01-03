@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://test_capture_scene"]
+[gd_scene load_steps=12 format=3 uid="uid://test_capture_scene"]
 
 [ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
 [ext_resource type="Script" path="res://scripts/entities/player.gd" id="2_player"]
@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" uid="uid://enemy_fast_scene" path="res://scenes/entities/enemy_fast.tscn" id="6_fast"]
 [ext_resource type="PackedScene" uid="uid://grimoire_scene" path="res://scenes/ui/grimoire.tscn" id="7_grimoire"]
 [ext_resource type="PackedScene" uid="uid://ally_base_scene" path="res://scenes/entities/ally.tscn" id="8_ally"]
+[ext_resource type="PackedScene" uid="uid://pause_menu_scene" path="res://scenes/ui/pause_menu.tscn" id="9_pause"]
+[ext_resource type="PackedScene" uid="uid://game_over_scene" path="res://scenes/ui/game_over.tscn" id="10_game_over"]
 
 [sub_resource type="GDScript" id="GDScript_test"]
 script/source = "extends Node2D
@@ -21,12 +23,16 @@ script/source = "extends Node2D
 @onready var spell_caster: SpellCaster = $SpellCaster
 @onready var rune_canvas: CanvasLayer = $RuneCanvas
 @onready var grimoire: CanvasLayer = $Grimoire
+@onready var pause_menu: CanvasLayer = $PauseMenu
+@onready var game_over: CanvasLayer = $GameOver
 @onready var status_label: Label = $UI/StatusLabel
 @onready var hp_label: Label = $UI/HPLabel
 @onready var capture_label: Label = $UI/CaptureLabel
 
 var _rune_mode: bool = false
 var _spell_mode: bool = false
+var _game_over: bool = false
+var _play_time: float = 0.0
 
 
 func _ready() -> void:
@@ -54,12 +60,13 @@ func _ready() -> void:
 	# Conectar player
 	if player:
 		player.hp_changed.connect(_on_hp_changed)
+		player.died.connect(_on_player_died)
 		_on_hp_changed(player.hp, player.max_hp)
 
 	# Debilitar enemigos para pruebas
 	_weaken_enemies()
 
-	_update_status(\"WASD=mover ESPACIO=runa G=grimorio ESC=salir\")
+	_update_status(\"WASD=mover ESPACIO=runa G=grimorio ESC=pausa\")
 	_update_capture_count()
 
 
@@ -74,9 +81,14 @@ func _weaken_enemies() -> void:
 			print(\"[TestCapture] %s debilitado a %d HP\" % [enemy.name, enemy.hp])
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if _game_over:
+		return
+
+	_play_time += delta
+
 	# Movimiento WASD para testing
-	if player and not _rune_mode:
+	if player and not _rune_mode and not pause_menu.is_paused:
 		var input_dir := Vector2.ZERO
 		if Input.is_action_pressed(\"ui_up\") or Input.is_key_pressed(KEY_W):
 			input_dir.y -= 1
@@ -98,14 +110,10 @@ func _process(_delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed(\"pause\"):
-		if _spell_mode:
-			_cancel_spell_mode()
-		elif _rune_mode:
-			pass
-		else:
-			_exit_to_menu()
-	elif event.is_action_pressed(\"toggle_rune_mode\") and not _rune_mode and not _spell_mode:
+	if _game_over or pause_menu.is_paused:
+		return
+
+	if event.is_action_pressed(\"toggle_rune_mode\") and not _rune_mode and not _spell_mode:
 		_activate_rune_mode()
 	elif _spell_mode and event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -164,6 +172,36 @@ func _on_hp_changed(current: int, max_hp: int) -> void:
 		hp_label.text = \"HP: %d/%d\" % [current, max_hp]
 
 
+func _on_player_died() -> void:
+	if _game_over:
+		return
+
+	_game_over = true
+	print(\"[TestCapture] Jugador muerto - Game Over\")
+
+	# Contar aliados que se pierden
+	var allies := get_tree().get_nodes_in_group(\"allies\")
+	var monsters_lost := allies.size()
+
+	# Eliminar aliados invocados
+	for ally in allies:
+		if is_instance_valid(ally):
+			ally.queue_free()
+
+	# Conservar monstruos en reserva
+	var monsters_kept := 0
+	if SaveManager.current_data:
+		monsters_kept = SaveManager.current_data.reserve.size()
+
+	# Mostrar game over
+	if game_over:
+		game_over.show_game_over({
+			\"monsters_lost\": monsters_lost,
+			\"monsters_kept\": monsters_kept,
+			\"time_played\": _play_time
+		})
+
+
 func _update_status(text: String) -> void:
 	if status_label:
 		status_label.text = text
@@ -183,8 +221,6 @@ func _update_capture_count() -> void:
 		capture_label.text += \" | Debiles: %d/%d\" % [weak_count, enemies.size()]
 
 
-func _exit_to_menu() -> void:
-	SceneTransition.change_scene(\"res://scenes/debug/debug_menu.tscn\")
 
 
 func _on_spawn_weak_pressed() -> void:
@@ -309,6 +345,10 @@ script = ExtResource("3_spell_caster")
 [node name="RuneCanvas" parent="." instance=ExtResource("4_rune_canvas")]
 
 [node name="Grimoire" parent="." instance=ExtResource("7_grimoire")]
+
+[node name="PauseMenu" parent="." instance=ExtResource("9_pause")]
+
+[node name="GameOver" parent="." instance=ExtResource("10_game_over")]
 
 [node name="EnemyWeak1" parent="." instance=ExtResource("6_fast")]
 position = Vector2(300, 300)

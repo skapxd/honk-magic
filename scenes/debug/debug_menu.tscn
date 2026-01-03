@@ -48,6 +48,10 @@ func _on_test_capture_pressed() -> void:
 	SceneTransition.change_scene(\"res://scenes/debug/test_capture.tscn\")
 
 
+func _on_test_pause_pressed() -> void:
+	SceneTransition.change_scene(\"res://scenes/debug/test_pause.tscn\")
+
+
 func _on_back_pressed() -> void:
 	SceneTransition.change_scene(\"res://scenes/ui/main_menu.tscn\")
 
@@ -162,6 +166,12 @@ custom_minimum_size = Vector2(280, 64)
 layout_mode = 2
 text = "DEBUG_TEST_CAPTURE"
 
+[node name="TestPauseButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+auto_translate_mode = 1
+custom_minimum_size = Vector2(280, 64)
+layout_mode = 2
+text = "DEBUG_TEST_PAUSE"
+
 [node name="MapGeneratorButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
 auto_translate_mode = 1
 custom_minimum_size = Vector2(280, 64)
@@ -186,5 +196,6 @@ text = "MENU_BACK"
 [connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestCombatButton" to="." method="_on_test_combat_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestRTSButton" to="." method="_on_test_rts_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestCaptureButton" to="." method="_on_test_capture_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestPauseButton" to="." method="_on_test_pause_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/MapGeneratorButton" to="." method="_on_map_generator_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_pressed"]

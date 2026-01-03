@@ -8,6 +8,7 @@ extends CharacterBody2D
 
 signal hp_changed(current: int, max_hp: int)
 signal mp_changed(current: int, max_mp: int)
+signal died()
 
 @export var speed: float = 300.0
 @export var player_color: Color = Color(0.88, 0.88, 0.88)
@@ -144,4 +145,4 @@ func _flash_damage() -> void:
 
 func _on_death() -> void:
 	print("[Player] Murio!")
-	# TODO: Implementar game over en Entregable 13
+	died.emit()

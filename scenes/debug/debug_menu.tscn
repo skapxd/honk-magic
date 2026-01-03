@@ -32,6 +32,10 @@ func _on_test_spells_pressed() -> void:
 	SceneTransition.change_scene(\"res://scenes/debug/test_spells.tscn\")
 
 
+func _on_test_combat_pressed() -> void:
+	SceneTransition.change_scene(\"res://scenes/debug/test_enemies.tscn\")
+
+
 func _on_map_generator_pressed() -> void:
 	SceneTransition.change_scene(\"res://scenes/dev_tools/map_generator.tscn\")
 
@@ -136,7 +140,6 @@ text = "DEBUG_TEST_SPELLS"
 auto_translate_mode = 1
 custom_minimum_size = Vector2(280, 64)
 layout_mode = 2
-disabled = true
 text = "DEBUG_TEST_COMBAT"
 
 [node name="TestRTSButton" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
@@ -174,5 +177,6 @@ text = "MENU_BACK"
 [connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestPlayerButton" to="." method="_on_test_player_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestRunesButton" to="." method="_on_test_runes_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestSpellsButton" to="." method="_on_test_spells_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/TestCombatButton" to="." method="_on_test_combat_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/GridContainer/MapGeneratorButton" to="." method="_on_map_generator_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_pressed"]

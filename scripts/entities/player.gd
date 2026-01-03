@@ -119,3 +119,29 @@ func save_state() -> void:
 		SaveManager.current_data.hp_actual = hp
 		SaveManager.current_data.mp_actual = mp
 		SaveManager.current_data.position = global_position
+
+
+func take_damage(amount: float, from: Node2D = null) -> void:
+	"""Recibe daño de una fuente externa"""
+	var damage := int(amount)
+	hp -= damage
+	print("[Player] Recibio %d de dano de %s. HP: %d/%d" % [damage, from.name if from else "unknown", hp, max_hp])
+
+	# Efecto visual de daño
+	_flash_damage()
+
+	# Verificar muerte
+	if hp <= 0:
+		_on_death()
+
+
+func _flash_damage() -> void:
+	var original_modulate := modulate
+	modulate = Color.RED
+	var tween := create_tween()
+	tween.tween_property(self, "modulate", original_modulate, 0.15)
+
+
+func _on_death() -> void:
+	print("[Player] Murio!")
+	# TODO: Implementar game over en Entregable 13

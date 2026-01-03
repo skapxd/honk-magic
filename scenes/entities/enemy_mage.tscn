@@ -1,0 +1,148 @@
+[gd_scene load_steps=4 format=3 uid="uid://enemy_mage_scene"]
+
+[ext_resource type="Script" path="res://scripts/entities/enemy_base.gd" id="1_enemy"]
+[ext_resource type="PackedScene" uid="uid://projectile_base" path="res://scenes/spells/projectile_base.tscn" id="2_projectile"]
+
+[sub_resource type="GDScript" id="GDScript_mage"]
+script/source = "extends EnemyBase
+
+# =============================================================================
+# HONK MAGIC - Enemy Mage
+# =============================================================================
+# Enemigo mago: fragil, ataque a distancia con proyectiles.
+
+@export var projectile_scene: PackedScene
+@export var projectile_speed: float = 300.0
+@export var preferred_distance: float = 150.0  # Distancia que intenta mantener
+
+@onready var orb: Node2D = $Visual/Orb
+
+
+func _setup_entity() -> void:
+	super._setup_entity()
+	max_hp = 60
+	hp = max_hp
+	speed = 150.0
+	detection_range = 400.0
+	attack_range = 300.0  # Ataque a distancia
+	attack_damage = 15.0
+	attack_cooldown = 2.0
+
+
+func _process_attack(delta: float) -> void:
+	if not is_instance_valid(target):
+		return
+
+	var direction := (target.global_position - global_position).normalized()
+	_rotate_visual(direction)
+
+	# Mantener distancia preferida
+	var dist := global_position.distance_to(target.global_position)
+	if dist < preferred_distance:
+		# Alejarse del objetivo
+		velocity = -direction * speed * 0.5
+		move_and_slide()
+	elif dist > preferred_distance * 1.5:
+		# Acercarse un poco
+		velocity = direction * speed * 0.3
+		move_and_slide()
+	else:
+		velocity = Vector2.ZERO
+
+	# Animar orbe
+	if orb:
+		orb.rotation += delta * 3.0
+
+	# Intentar atacar
+	if can_attack():
+		perform_attack()
+
+
+func _do_attack() -> void:
+	if not is_instance_valid(target):
+		return
+
+	_shoot_projectile()
+
+
+func _shoot_projectile() -> void:
+	if not projectile_scene:
+		# Usar proyectil base si no hay uno asignado
+		projectile_scene = load(\"res://scenes/spells/projectile_base.tscn\")
+
+	if not projectile_scene:
+		return
+
+	var proj: Projectile = projectile_scene.instantiate()
+	get_tree().root.add_child(proj)
+
+	var direction := (target.global_position - global_position).normalized()
+	proj.global_position = global_position + direction * 30
+	proj.setup(self, direction, projectile_speed, attack_damage)
+	proj.modulate = Color(0.7, 0.3, 0.9)  # Purpura
+
+	print(\"[%s] Disparo proyectil hacia %s\" % [name, target.name])
+
+	# Efecto visual de disparo
+	_attack_effect()
+
+
+func _attack_effect() -> void:
+	# Flash del orbe al disparar
+	if orb:
+		var original_scale := orb.scale
+		orb.scale = original_scale * 1.5
+		var tween := create_tween()
+		tween.tween_property(orb, \"scale\", original_scale, 0.2)
+
+
+func _on_state_changed(old_state: State, new_state: State) -> void:
+	match new_state:
+		State.IDLE:
+			modulate = Color(1, 1, 1)
+		State.CHASE:
+			modulate = Color(0.9, 0.8, 1)
+		State.ATTACK:
+			modulate = Color(0.7, 0.5, 1)
+"
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_mage"]
+radius = 25.0
+
+[node name="EnemyMage" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+script = SubResource("GDScript_mage")
+max_hp = 60
+speed = 150.0
+team = 1
+detection_range = 400.0
+attack_range = 300.0
+attack_damage = 15.0
+attack_cooldown = 2.0
+projectile_scene = ExtResource("2_projectile")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Body" type="Polygon2D" parent="Visual"]
+color = Color(0.5, 0.3, 0.7, 1)
+polygon = PackedVector2Array(20, 0, 14.14, 14.14, 0, 20, -14.14, 14.14, -20, 0, -14.14, -14.14, 0, -20, 14.14, -14.14)
+
+[node name="Orb" type="Node2D" parent="Visual"]
+position = Vector2(0, -30)
+
+[node name="OrbCore" type="Polygon2D" parent="Visual/Orb"]
+color = Color(0.9, 0.7, 1, 1)
+polygon = PackedVector2Array(8, 0, 5.66, 5.66, 0, 8, -5.66, 5.66, -8, 0, -5.66, -5.66, 0, -8, 5.66, -5.66)
+
+[node name="OrbGlow" type="Polygon2D" parent="Visual/Orb"]
+modulate = Color(1, 1, 1, 0.5)
+color = Color(0.7, 0.5, 0.9, 1)
+polygon = PackedVector2Array(12, 0, 8.49, 8.49, 0, 12, -8.49, 8.49, -12, 0, -8.49, -8.49, 0, -12, 8.49, -8.49)
+
+[node name="Eye" type="Polygon2D" parent="Visual"]
+color = Color(1, 0.3, 0.3, 1)
+polygon = PackedVector2Array(-5, -3, 5, -3, 5, 3, -5, 3)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_mage")

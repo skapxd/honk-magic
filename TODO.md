@@ -108,7 +108,7 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 - [x] `map_generator.tscn` - Generador de mapas procedurales (Entregable 6)
 - [x] `test_runes.tscn` - Dibujo y reconocimiento de runas (Entregable 7)
 - [x] `test_spells.tscn` - Lanzar hechizos y efectos (Entregable 8)
-- [ ] `test_combat.tscn` - Combate player vs enemigos
+- [x] `test_enemies.tscn` - Combate player vs enemigos (Entregable 9)
 - [ ] `test_rts.tscn` - Selección y comandos de unidades
 - [ ] `test_capture.tscn` - Captura e invocación
 
@@ -298,21 +298,23 @@ resources/maps/
 
 ---
 
-## Entregable 9: Enemigos
+## Entregable 9: Enemigos ✅
 **Objetivo:** Enemigos con IA básica que atacan al jugador
 **Tag:** `v0.9.0-enemies`
 
 ### Tareas:
-- [ ] Crear `scripts/entities/entity_base.gd` (HP, daño, estados)
-- [ ] Crear `scenes/entities/enemy_tank.tscn` (cuadrado + cuernos)
-- [ ] Crear `scenes/entities/enemy_fast.tscn` (triángulo + estela)
-- [ ] Crear `scenes/entities/enemy_mage.tscn` (círculo + orbe)
-- [ ] Implementar IA según PLAN.md sección 9.7:
+- [x] Crear `scripts/entities/entity_base.gd` (HP, daño, estados)
+- [x] Crear `scripts/entities/enemy_base.gd` (IA base para enemigos)
+- [x] Crear `scenes/entities/enemy_tank.tscn` (cuadrado + cuernos)
+- [x] Crear `scenes/entities/enemy_fast.tscn` (triángulo + estela)
+- [x] Crear `scenes/entities/enemy_mage.tscn` (círculo + orbe)
+- [x] Implementar IA según PLAN.md sección 9.7:
   - Estados: IDLE → CHASE → ATTACK
   - Detección del jugador
   - Ataques (cuerpo a cuerpo / proyectil)
-- [ ] Sistema de daño bidireccional (jugador ↔ enemigos)
-- [ ] Muerte de enemigos con partículas
+- [x] Sistema de daño bidireccional (jugador ↔ enemigos)
+- [x] Muerte de enemigos con partículas
+- [x] Crear `scenes/debug/test_enemies.tscn` para debug
 
 **Criterio de aceptación:** Enemigos persiguen al jugador, lo atacan, mueren con hechizos.
 

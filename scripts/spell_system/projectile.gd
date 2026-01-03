@@ -49,6 +49,30 @@ func setup(p_caster: Node2D, p_direction: Vector2, p_speed: float = 400.0, p_dam
 	rotation = direction.angle()
 
 
+func _is_same_team(target: Node2D) -> bool:
+	# Si no hay caster, no verificar equipo
+	if not is_instance_valid(caster):
+		return false
+
+	# Verificar usando EntityBase.team
+	if caster is EntityBase and target is EntityBase:
+		return caster.team == target.team
+
+	# Verificar usando grupos
+	var caster_is_player := caster.is_in_group("player") or caster.is_in_group("allies")
+	var target_is_player := target.is_in_group("player") or target.is_in_group("allies")
+	var caster_is_enemy := caster.is_in_group("enemies")
+	var target_is_enemy := target.is_in_group("enemies")
+
+	# Mismo equipo si ambos son jugador/aliados o ambos son enemigos
+	if caster_is_player and target_is_player:
+		return true
+	if caster_is_enemy and target_is_enemy:
+		return true
+
+	return false
+
+
 func _on_body_entered(body: Node2D) -> void:
 	if not _can_collide():
 		return
@@ -84,8 +108,14 @@ func _handle_collision(target: Node2D) -> void:
 		on_impact(target)
 		return
 
-	# Aplicar dano
-	if target.has_node("HealthComponent"):
+	# Verificar equipos - no dañar aliados
+	if _is_same_team(target):
+		return
+
+	# Aplicar dano usando el sistema de EntityBase si esta disponible
+	if target.has_method("take_damage"):
+		target.take_damage(damage, caster)
+	elif target.has_node("HealthComponent"):
 		target.get_node("HealthComponent").take_damage(damage)
 	elif "hp" in target:
 		target.hp -= int(damage)

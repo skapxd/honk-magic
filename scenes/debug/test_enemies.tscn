@@ -1,0 +1,292 @@
+[gd_scene load_steps=9 format=3 uid="uid://test_enemies_scene"]
+
+[ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+[ext_resource type="Script" path="res://scripts/entities/player.gd" id="2_player"]
+[ext_resource type="Script" path="res://scripts/spell_system/spell_caster.gd" id="3_spell_caster"]
+[ext_resource type="PackedScene" uid="uid://rune_canvas_scene" path="res://scenes/gameplay/rune_canvas.tscn" id="4_rune_canvas"]
+[ext_resource type="PackedScene" uid="uid://enemy_tank_scene" path="res://scenes/entities/enemy_tank.tscn" id="5_tank"]
+[ext_resource type="PackedScene" uid="uid://enemy_fast_scene" path="res://scenes/entities/enemy_fast.tscn" id="6_fast"]
+[ext_resource type="PackedScene" uid="uid://enemy_mage_scene" path="res://scenes/entities/enemy_mage.tscn" id="7_mage"]
+
+[sub_resource type="GDScript" id="GDScript_test"]
+script/source = "extends Node2D
+
+# =============================================================================
+# HONK MAGIC - Test Enemies
+# =============================================================================
+# Escena de prueba para enemigos y combate.
+
+@onready var player: Player = $Player
+@onready var spell_caster: SpellCaster = $SpellCaster
+@onready var rune_canvas: CanvasLayer = $RuneCanvas
+@onready var status_label: Label = $UI/StatusLabel
+@onready var hp_label: Label = $UI/HPLabel
+
+var _rune_mode: bool = false
+var _spell_mode: bool = false
+
+
+func _ready() -> void:
+	print(\"[TestEnemies] Escena de prueba de enemigos iniciada\")
+
+	# Configurar spell caster
+	if spell_caster and player:
+		spell_caster.caster = player
+
+	# Conectar rune canvas
+	if rune_canvas:
+		rune_canvas.rune_recognized.connect(_on_rune_recognized)
+		rune_canvas.rune_cancelled.connect(_on_rune_cancelled)
+
+	# Conectar player
+	if player:
+		player.hp_changed.connect(_on_hp_changed)
+		_on_hp_changed(player.hp, player.max_hp)
+
+	_update_status(\"WASD=mover ESPACIO=runa ESC=salir\")
+
+
+func _process(delta: float) -> void:
+	# Movimiento WASD para testing
+	if player and not _rune_mode:
+		var input_dir := Vector2.ZERO
+		if Input.is_action_pressed(\"ui_up\") or Input.is_key_pressed(KEY_W):
+			input_dir.y -= 1
+		if Input.is_action_pressed(\"ui_down\") or Input.is_key_pressed(KEY_S):
+			input_dir.y += 1
+		if Input.is_action_pressed(\"ui_left\") or Input.is_key_pressed(KEY_A):
+			input_dir.x -= 1
+		if Input.is_action_pressed(\"ui_right\") or Input.is_key_pressed(KEY_D):
+			input_dir.x += 1
+
+		if input_dir != Vector2.ZERO:
+			input_dir = input_dir.normalized()
+			player.velocity = input_dir * player.speed
+			player.move_and_slide()
+			# Rotar visual hacia direccion de movimiento
+			if player.visual:
+				player.visual.rotation = lerp_angle(player.visual.rotation, input_dir.angle() + PI / 2, 0.15)
+
+	# Contar enemigos vivos
+	var enemies := get_tree().get_nodes_in_group(\"enemies\")
+	if status_label and not _rune_mode and not _spell_mode:
+		_update_status(\"Enemigos: %d | WASD=mover ESPACIO=runa ESC=salir\" % enemies.size())
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		if _spell_mode:
+			_cancel_spell_mode()
+		elif _rune_mode:
+			pass  # Rune canvas handles this
+		else:
+			_exit_to_menu()
+	elif event.is_action_pressed(\"toggle_rune_mode\") and not _rune_mode and not _spell_mode:
+		_activate_rune_mode()
+	elif _spell_mode and event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_cast_spell_at_mouse()
+			else:
+				if spell_caster and spell_caster.is_vector_casting:
+					_finish_vector_cast()
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			_cancel_spell_mode()
+
+
+func _activate_rune_mode() -> void:
+	if _rune_mode or not rune_canvas:
+		return
+	_rune_mode = true
+	rune_canvas.activate()
+	_update_status(\"MODO RUNA - Dibuja y suelta ESPACIO\")
+
+
+func _on_rune_recognized(rune_name: String, score: float) -> void:
+	print(\"Runa reconocida: %s (%.0f%%)\" % [rune_name, score * 100])
+	_rune_mode = false
+
+	if spell_caster and spell_caster.charge_spell_from_rune(rune_name):
+		_activate_spell_mode()
+
+
+func _on_rune_cancelled() -> void:
+	_rune_mode = false
+	_update_status(\"Runa cancelada\")
+
+
+func _activate_spell_mode() -> void:
+	if not spell_caster or not spell_caster.charged_spell:
+		return
+	_spell_mode = true
+	_update_status(\"HECHIZO: %s - Click para lanzar\" % spell_caster.charged_spell.spell_name)
+
+
+func _cancel_spell_mode() -> void:
+	_spell_mode = false
+	if spell_caster:
+		spell_caster.cancel_charge()
+	_update_status(\"Hechizo cancelado\")
+
+
+func _cast_spell_at_mouse() -> void:
+	if not spell_caster:
+		return
+
+	var mouse_pos := get_global_mouse_position()
+	if spell_caster.cast_at_position(mouse_pos):
+		_spell_mode = false
+	elif spell_caster.is_vector_casting:
+		_update_status(\"ARRASTRA y suelta para muro\")
+
+
+func _finish_vector_cast() -> void:
+	if not spell_caster:
+		return
+
+	var end_pos := get_global_mouse_position()
+	if spell_caster.finish_vector_cast(end_pos):
+		_spell_mode = false
+
+
+func _on_hp_changed(current: int, max_hp: int) -> void:
+	if hp_label:
+		hp_label.text = \"HP: %d/%d\" % [current, max_hp]
+
+
+func _update_status(text: String) -> void:
+	if status_label:
+		status_label.text = text
+
+
+func _exit_to_menu() -> void:
+	SceneTransition.change_scene(\"res://scenes/debug/debug_menu.tscn\")
+
+
+func _on_spawn_tank_pressed() -> void:
+	_spawn_enemy(\"res://scenes/entities/enemy_tank.tscn\")
+
+
+func _on_spawn_fast_pressed() -> void:
+	_spawn_enemy(\"res://scenes/entities/enemy_fast.tscn\")
+
+
+func _on_spawn_mage_pressed() -> void:
+	_spawn_enemy(\"res://scenes/entities/enemy_mage.tscn\")
+
+
+func _spawn_enemy(scene_path: String) -> void:
+	var scene := load(scene_path) as PackedScene
+	if not scene:
+		return
+
+	var enemy := scene.instantiate()
+	add_child(enemy)
+
+	# Posicionar aleatoriamente cerca del player
+	var offset := Vector2(randf_range(-200, 200), randf_range(-200, 200))
+	if offset.length() < 100:
+		offset = offset.normalized() * 150
+	enemy.global_position = player.global_position + offset
+	print(\"[TestEnemies] Spawneado %s en %s\" % [enemy.name, enemy.global_position])
+"
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 30.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.1, 0.1, 0.15, 1)
+shader_parameter/color_mid = Color(0.15, 0.15, 0.2, 1)
+shader_parameter/color_light = Color(0.1, 0.15, 0.2, 1)
+shader_parameter/color_accent = Color(0.2, 0.4, 0.3, 0.3)
+shader_parameter/fog_speed = 0.02
+shader_parameter/fog_scale = 12.0
+shader_parameter/fog_intensity = 0.25
+
+[node name="TestEnemies" type="Node2D"]
+script = SubResource("GDScript_test")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -100
+material = SubResource("ShaderMaterial_bg")
+offset_left = -2000.0
+offset_top = -2000.0
+offset_right = 2000.0
+offset_bottom = 2000.0
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(500, 400)
+script = ExtResource("2_player")
+
+[node name="Visual" type="Polygon2D" parent="Player"]
+color = Color(0.878431, 0.878431, 0.878431, 1)
+polygon = PackedVector2Array(26, -15, 26, 15, 0, 30, -26, 15, -26, -15, 0, -30)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_player")
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position_smoothing_enabled = true
+
+[node name="SpellCaster" type="Node2D" parent="."]
+script = ExtResource("3_spell_caster")
+
+[node name="RuneCanvas" parent="." instance=ExtResource("4_rune_canvas")]
+
+[node name="EnemyTank" parent="." instance=ExtResource("5_tank")]
+position = Vector2(800, 300)
+
+[node name="EnemyFast" parent="." instance=ExtResource("6_fast")]
+position = Vector2(300, 500)
+
+[node name="EnemyMage" parent="." instance=ExtResource("7_mage")]
+position = Vector2(700, 600)
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="StatusLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 600.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0, 0.961, 0.831, 1)
+theme_override_font_sizes/font_size = 18
+text = "Test Enemies"
+
+[node name="HPLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 50.0
+offset_right = 200.0
+offset_bottom = 80.0
+theme_override_colors/font_color = Color(0.9, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 18
+text = "HP: 100/100"
+
+[node name="SpawnPanel" type="VBoxContainer" parent="UI"]
+offset_left = 20.0
+offset_top = 100.0
+offset_right = 150.0
+offset_bottom = 220.0
+
+[node name="SpawnLabel" type="Label" parent="UI/SpawnPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Spawn Enemy:"
+
+[node name="SpawnTank" type="Button" parent="UI/SpawnPanel"]
+layout_mode = 2
+text = "Tank"
+
+[node name="SpawnFast" type="Button" parent="UI/SpawnPanel"]
+layout_mode = 2
+text = "Fast"
+
+[node name="SpawnMage" type="Button" parent="UI/SpawnPanel"]
+layout_mode = 2
+text = "Mage"
+
+[connection signal="pressed" from="UI/SpawnPanel/SpawnTank" to="." method="_on_spawn_tank_pressed"]
+[connection signal="pressed" from="UI/SpawnPanel/SpawnFast" to="." method="_on_spawn_fast_pressed"]
+[connection signal="pressed" from="UI/SpawnPanel/SpawnMage" to="." method="_on_spawn_mage_pressed"]

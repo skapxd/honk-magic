@@ -1,0 +1,109 @@
+[gd_scene load_steps=4 format=3 uid="uid://enemy_fast_scene"]
+
+[ext_resource type="Script" path="res://scripts/entities/enemy_base.gd" id="1_enemy"]
+
+[sub_resource type="GDScript" id="GDScript_fast"]
+script/source = "extends EnemyBase
+
+# =============================================================================
+# HONK MAGIC - Enemy Fast
+# =============================================================================
+# Enemigo rapido: veloz, fragil, ataque rapido pero debil.
+
+@onready var trail: CPUParticles2D = $Trail
+
+
+func _setup_entity() -> void:
+	super._setup_entity()
+	max_hp = 50
+	hp = max_hp
+	speed = 350.0
+	detection_range = 350.0
+	attack_range = 40.0
+	attack_damage = 8.0
+	attack_cooldown = 0.5
+
+
+func _process_chase(delta: float) -> void:
+	super._process_chase(delta)
+	# Activar estela cuando persigue
+	if trail:
+		trail.emitting = true
+
+
+func _process_idle(delta: float) -> void:
+	super._process_idle(delta)
+	# Desactivar estela cuando vaga
+	if trail:
+		trail.emitting = false
+
+
+func _attack_effect() -> void:
+	# Dash rapido hacia el objetivo
+	if not is_instance_valid(target):
+		return
+
+	var direction := (target.global_position - global_position).normalized()
+	var tween := create_tween()
+	tween.tween_property(self, \"global_position\", global_position + direction * 30, 0.05)
+	tween.tween_property(self, \"global_position\", global_position, 0.1)
+
+
+func _on_state_changed(old_state: State, new_state: State) -> void:
+	match new_state:
+		State.IDLE:
+			modulate = Color(1, 1, 1)
+			if trail:
+				trail.emitting = false
+		State.CHASE:
+			modulate = Color(0.8, 1, 0.8)
+			if trail:
+				trail.emitting = true
+		State.ATTACK:
+			modulate = Color(0.5, 1, 0.5)
+"
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_fast"]
+radius = 20.0
+
+[node name="EnemyFast" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+script = SubResource("GDScript_fast")
+max_hp = 50
+speed = 350.0
+team = 1
+detection_range = 350.0
+attack_range = 40.0
+attack_damage = 8.0
+attack_cooldown = 0.5
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Body" type="Polygon2D" parent="Visual"]
+color = Color(0.2, 0.8, 0.3, 1)
+polygon = PackedVector2Array(25, 0, -15, -18, -15, 18)
+
+[node name="Eye" type="Polygon2D" parent="Visual"]
+position = Vector2(5, 0)
+color = Color(1, 1, 0.3, 1)
+polygon = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_fast")
+
+[node name="Trail" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 15
+lifetime = 0.3
+local_coords = false
+emission_shape = 1
+emission_sphere_radius = 5.0
+direction = Vector2(-1, 0)
+spread = 20.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 50.0
+initial_velocity_max = 80.0
+scale_amount_min = 3.0
+scale_amount_max = 6.0
+color = Color(0.2, 0.8, 0.3, 0.7)

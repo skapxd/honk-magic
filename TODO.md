@@ -109,7 +109,7 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 - [x] `test_runes.tscn` - Dibujo y reconocimiento de runas (Entregable 7)
 - [x] `test_spells.tscn` - Lanzar hechizos y efectos (Entregable 8)
 - [x] `test_enemies.tscn` - Combate player vs enemigos (Entregable 9)
-- [ ] `test_rts.tscn` - Selección y comandos de unidades
+- [x] `test_rts.tscn` - Selección y comandos de unidades (Entregable 10)
 - [ ] `test_capture.tscn` - Captura e invocación
 
 ---
@@ -320,16 +320,18 @@ resources/maps/
 
 ---
 
-## Entregable 10: Aliados
+## Entregable 10: Aliados ✅
 **Objetivo:** Aliados que pelean junto al jugador
 **Tag:** `v0.10.0-allies`
 
 ### Tareas:
-- [ ] Crear `scenes/entities/ally.tscn` (triángulo + espada)
-- [ ] Reutilizar Selection Manager del Entregable 4
-- [ ] Aliados seleccionables y comandables como el jugador
-- [ ] Aliados atacan enemigos automáticamente cuando están cerca
-- [ ] Aliados pueden morir
+- [x] Crear `scripts/entities/ally_base.gd` (IA de aliados)
+- [x] Crear `scenes/entities/ally.tscn` (triángulo + espada)
+- [x] Reutilizar Selection Manager del Entregable 4
+- [x] Aliados seleccionables y comandables como el jugador
+- [x] Aliados atacan enemigos automáticamente cuando están cerca
+- [x] Aliados pueden morir
+- [x] Crear `scenes/debug/test_rts.tscn` para debug
 
 **Criterio de aceptación:** Seleccionar aliados, moverlos con click derecho, atacan enemigos.
 

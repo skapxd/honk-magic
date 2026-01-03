@@ -1,0 +1,236 @@
+[gd_scene load_steps=7 format=3 uid="uid://test_rts_scene"]
+
+[ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+[ext_resource type="Script" path="res://scripts/core/selection_manager.gd" id="2_selection"]
+[ext_resource type="PackedScene" uid="uid://ally_base_scene" path="res://scenes/entities/ally.tscn" id="3_ally"]
+[ext_resource type="PackedScene" uid="uid://enemy_tank_scene" path="res://scenes/entities/enemy_tank.tscn" id="4_tank"]
+[ext_resource type="PackedScene" uid="uid://enemy_fast_scene" path="res://scenes/entities/enemy_fast.tscn" id="5_fast"]
+
+[sub_resource type="GDScript" id="GDScript_test"]
+script/source = "extends Node2D
+
+# =============================================================================
+# HONK MAGIC - Test RTS (Aliados)
+# =============================================================================
+# Escena de prueba para aliados y mecánicas RTS.
+
+@onready var selection_manager: SelectionManager = $SelectionManager
+@onready var status_label: Label = $UI/StatusLabel
+@onready var allies_label: Label = $UI/AlliesLabel
+
+var _camera_speed: float = 400.0
+
+
+func _ready() -> void:
+	print(\"[TestRTS] Escena de prueba RTS iniciada\")
+
+	# Conectar signals del selection manager
+	if selection_manager:
+		selection_manager.selection_changed.connect(_on_selection_changed)
+		selection_manager.move_command.connect(_on_move_command)
+
+	_update_status(\"Click=seleccionar Drag=caja RClick=mover WASD=cámara\")
+	_update_allies_count()
+
+
+func _process(delta: float) -> void:
+	# Movimiento de cámara con WASD
+	var input_dir := Vector2.ZERO
+	if Input.is_action_pressed(\"ui_up\") or Input.is_key_pressed(KEY_W):
+		input_dir.y -= 1
+	if Input.is_action_pressed(\"ui_down\") or Input.is_key_pressed(KEY_S):
+		input_dir.y += 1
+	if Input.is_action_pressed(\"ui_left\") or Input.is_key_pressed(KEY_A):
+		input_dir.x -= 1
+	if Input.is_action_pressed(\"ui_right\") or Input.is_key_pressed(KEY_D):
+		input_dir.x += 1
+
+	if input_dir != Vector2.ZERO:
+		$Camera2D.position += input_dir.normalized() * _camera_speed * delta
+
+	_update_allies_count()
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		_exit_to_menu()
+
+
+func _on_selection_changed(units: Array) -> void:
+	if units.size() == 0:
+		_update_status(\"Ninguna unidad seleccionada\")
+	elif units.size() == 1:
+		_update_status(\"1 aliado seleccionado\")
+	else:
+		_update_status(\"%d aliados seleccionados\" % units.size())
+
+
+func _on_move_command(position: Vector2, units: Array) -> void:
+	print(\"[TestRTS] Moviendo %d unidades a %s\" % [units.size(), position])
+
+	# Distribuir unidades en formación
+	var count := units.size()
+	var spacing := 50.0
+	var cols := ceili(sqrt(count))
+
+	for i in range(count):
+		var unit = units[i]
+		if is_instance_valid(unit) and unit.has_method(\"move_to\"):
+			var row := i / cols
+			var col := i % cols
+			var offset := Vector2(col - cols / 2.0, row) * spacing
+			unit.move_to(position + offset)
+
+	# Efecto visual en destino
+	_spawn_move_indicator(position)
+
+
+func _spawn_move_indicator(pos: Vector2) -> void:
+	var indicator := Polygon2D.new()
+	indicator.polygon = PackedVector2Array([
+		Vector2(0, -15), Vector2(10, 5), Vector2(0, 0), Vector2(-10, 5)
+	])
+	indicator.color = Color(0, 1, 0.8, 0.8)
+	indicator.position = pos
+	add_child(indicator)
+
+	var tween := create_tween()
+	tween.tween_property(indicator, \"modulate:a\", 0.0, 0.5)
+	tween.tween_callback(indicator.queue_free)
+
+
+func _update_status(text: String) -> void:
+	if status_label:
+		status_label.text = text
+
+
+func _update_allies_count() -> void:
+	if allies_label:
+		var allies := get_tree().get_nodes_in_group(\"allies\")
+		var enemies := get_tree().get_nodes_in_group(\"enemies\")
+		var alive_allies := 0
+		var alive_enemies := 0
+
+		for a in allies:
+			if a.has_method(\"is_alive\") and a.is_alive():
+				alive_allies += 1
+
+		for e in enemies:
+			if e.has_method(\"is_alive\") and e.is_alive():
+				alive_enemies += 1
+
+		allies_label.text = \"Aliados: %d | Enemigos: %d\" % [alive_allies, alive_enemies]
+
+
+func _exit_to_menu() -> void:
+	SceneTransition.change_scene(\"res://scenes/debug/debug_menu.tscn\")
+
+
+func _on_spawn_ally_pressed() -> void:
+	var scene := load(\"res://scenes/entities/ally.tscn\") as PackedScene
+	if scene:
+		var ally := scene.instantiate()
+		add_child(ally)
+		ally.global_position = $Camera2D.global_position + Vector2(randf_range(-100, 100), randf_range(-100, 100))
+
+
+func _on_spawn_enemy_pressed() -> void:
+	var scenes := [
+		\"res://scenes/entities/enemy_tank.tscn\",
+		\"res://scenes/entities/enemy_fast.tscn\"
+	]
+	var scene := load(scenes[randi() % scenes.size()]) as PackedScene
+	if scene:
+		var enemy := scene.instantiate()
+		add_child(enemy)
+		enemy.global_position = $Camera2D.global_position + Vector2(randf_range(200, 400), randf_range(-200, 200))
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.1, 0.12, 0.15, 1)
+shader_parameter/color_mid = Color(0.15, 0.18, 0.22, 1)
+shader_parameter/color_light = Color(0.12, 0.16, 0.2, 1)
+shader_parameter/color_accent = Color(0.2, 0.5, 0.4, 0.3)
+shader_parameter/fog_speed = 0.02
+shader_parameter/fog_scale = 12.0
+shader_parameter/fog_intensity = 0.25
+
+[node name="TestRTS" type="Node2D"]
+script = SubResource("GDScript_test")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -100
+material = SubResource("ShaderMaterial_bg")
+offset_left = -2000.0
+offset_top = -2000.0
+offset_right = 2000.0
+offset_bottom = 2000.0
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(500, 400)
+position_smoothing_enabled = true
+
+[node name="SelectionManager" type="Node2D" parent="."]
+script = ExtResource("2_selection")
+
+[node name="Ally1" parent="." instance=ExtResource("3_ally")]
+position = Vector2(400, 350)
+
+[node name="Ally2" parent="." instance=ExtResource("3_ally")]
+position = Vector2(450, 400)
+
+[node name="Ally3" parent="." instance=ExtResource("3_ally")]
+position = Vector2(500, 350)
+
+[node name="Ally4" parent="." instance=ExtResource("3_ally")]
+position = Vector2(550, 400)
+
+[node name="EnemyTank" parent="." instance=ExtResource("4_tank")]
+position = Vector2(800, 300)
+
+[node name="EnemyFast" parent="." instance=ExtResource("5_fast")]
+position = Vector2(750, 500)
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="StatusLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 600.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0, 0.961, 0.831, 1)
+theme_override_font_sizes/font_size = 18
+text = "Test RTS"
+
+[node name="AlliesLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 50.0
+offset_right = 300.0
+offset_bottom = 80.0
+theme_override_colors/font_color = Color(0.3, 0.7, 0.9, 1)
+theme_override_font_sizes/font_size = 16
+text = "Aliados: 4 | Enemigos: 2"
+
+[node name="SpawnPanel" type="VBoxContainer" parent="UI"]
+offset_left = 20.0
+offset_top = 100.0
+offset_right = 150.0
+offset_bottom = 200.0
+
+[node name="SpawnLabel" type="Label" parent="UI/SpawnPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Spawn:"
+
+[node name="SpawnAlly" type="Button" parent="UI/SpawnPanel"]
+layout_mode = 2
+text = "Aliado"
+
+[node name="SpawnEnemy" type="Button" parent="UI/SpawnPanel"]
+layout_mode = 2
+text = "Enemigo"
+
+[connection signal="pressed" from="UI/SpawnPanel/SpawnAlly" to="." method="_on_spawn_ally_pressed"]
+[connection signal="pressed" from="UI/SpawnPanel/SpawnEnemy" to="." method="_on_spawn_enemy_pressed"]

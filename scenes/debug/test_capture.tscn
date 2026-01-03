@@ -1,0 +1,319 @@
+[gd_scene load_steps=8 format=3 uid="uid://test_capture_scene"]
+
+[ext_resource type="Shader" uid="uid://bl2j4hm0jk4sd" path="res://assets/shaders/fog_background.gdshader" id="1_shader"]
+[ext_resource type="Script" path="res://scripts/entities/player.gd" id="2_player"]
+[ext_resource type="Script" path="res://scripts/spell_system/spell_caster.gd" id="3_spell_caster"]
+[ext_resource type="PackedScene" uid="uid://rune_canvas_scene" path="res://scenes/gameplay/rune_canvas.tscn" id="4_rune_canvas"]
+[ext_resource type="PackedScene" uid="uid://enemy_tank_scene" path="res://scenes/entities/enemy_tank.tscn" id="5_tank"]
+[ext_resource type="PackedScene" uid="uid://enemy_fast_scene" path="res://scenes/entities/enemy_fast.tscn" id="6_fast"]
+
+[sub_resource type="GDScript" id="GDScript_test"]
+script/source = "extends Node2D
+
+# =============================================================================
+# HONK MAGIC - Test Capture
+# =============================================================================
+# Escena de prueba para el sistema de captura de monstruos.
+
+@onready var player: Player = $Player
+@onready var spell_caster: SpellCaster = $SpellCaster
+@onready var rune_canvas: CanvasLayer = $RuneCanvas
+@onready var status_label: Label = $UI/StatusLabel
+@onready var hp_label: Label = $UI/HPLabel
+@onready var capture_label: Label = $UI/CaptureLabel
+
+var _rune_mode: bool = false
+var _spell_mode: bool = false
+
+
+func _ready() -> void:
+	print(\"[TestCapture] Escena de prueba de captura iniciada\")
+
+	# Inicializar SaveManager si no hay partida activa
+	if not SaveManager.current_data:
+		SaveManager.current_data = SaveManager.SaveData.new()
+		SaveManager.current_data.player_name = \"Debug\"
+		print(\"[TestCapture] SaveData temporal creado\")
+
+	# Configurar spell caster
+	if spell_caster and player:
+		spell_caster.caster = player
+
+	# Conectar rune canvas
+	if rune_canvas:
+		rune_canvas.rune_recognized.connect(_on_rune_recognized)
+		rune_canvas.rune_cancelled.connect(_on_rune_cancelled)
+
+	# Conectar player
+	if player:
+		player.hp_changed.connect(_on_hp_changed)
+		_on_hp_changed(player.hp, player.max_hp)
+
+	# Debilitar enemigos para pruebas
+	_weaken_enemies()
+
+	_update_status(\"WASD=mover ESPACIO=runa (dibuja ?) ESC=salir\")
+	_update_capture_count()
+
+
+func _weaken_enemies() -> void:
+	# Poner algunos enemigos en HP bajo para poder capturarlos
+	await get_tree().process_frame
+	var enemies := get_tree().get_nodes_in_group(\"enemies\")
+	for i in range(enemies.size()):
+		var enemy = enemies[i]
+		if i % 2 == 0:  # Debilitar la mitad
+			enemy.hp = int(enemy.max_hp * 0.2)  # 20% HP
+			print(\"[TestCapture] %s debilitado a %d HP\" % [enemy.name, enemy.hp])
+
+
+func _process(_delta: float) -> void:
+	# Movimiento WASD para testing
+	if player and not _rune_mode:
+		var input_dir := Vector2.ZERO
+		if Input.is_action_pressed(\"ui_up\") or Input.is_key_pressed(KEY_W):
+			input_dir.y -= 1
+		if Input.is_action_pressed(\"ui_down\") or Input.is_key_pressed(KEY_S):
+			input_dir.y += 1
+		if Input.is_action_pressed(\"ui_left\") or Input.is_key_pressed(KEY_A):
+			input_dir.x -= 1
+		if Input.is_action_pressed(\"ui_right\") or Input.is_key_pressed(KEY_D):
+			input_dir.x += 1
+
+		if input_dir != Vector2.ZERO:
+			input_dir = input_dir.normalized()
+			player.velocity = input_dir * player.speed
+			player.move_and_slide()
+			if player.visual:
+				player.visual.rotation = lerp_angle(player.visual.rotation, input_dir.angle() + PI / 2, 0.15)
+
+	_update_capture_count()
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"pause\"):
+		if _spell_mode:
+			_cancel_spell_mode()
+		elif _rune_mode:
+			pass
+		else:
+			_exit_to_menu()
+	elif event.is_action_pressed(\"toggle_rune_mode\") and not _rune_mode and not _spell_mode:
+		_activate_rune_mode()
+	elif _spell_mode and event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			_cast_spell_at_mouse()
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			_cancel_spell_mode()
+
+
+func _activate_rune_mode() -> void:
+	if _rune_mode or not rune_canvas:
+		return
+	_rune_mode = true
+	rune_canvas.activate()
+	_update_status(\"MODO RUNA - Dibuja ? para capturar\")
+
+
+func _on_rune_recognized(rune_name: String, score: float) -> void:
+	print(\"Runa reconocida: %s (%.0f%%)\" % [rune_name, score * 100])
+	_rune_mode = false
+
+	if spell_caster and spell_caster.charge_spell_from_rune(rune_name):
+		_activate_spell_mode()
+
+
+func _on_rune_cancelled() -> void:
+	_rune_mode = false
+	_update_status(\"Runa cancelada\")
+
+
+func _activate_spell_mode() -> void:
+	if not spell_caster or not spell_caster.charged_spell:
+		return
+	_spell_mode = true
+	_update_status(\"HECHIZO: %s - Click para lanzar\" % spell_caster.charged_spell.spell_name)
+
+
+func _cancel_spell_mode() -> void:
+	_spell_mode = false
+	if spell_caster:
+		spell_caster.cancel_charge()
+	_update_status(\"Hechizo cancelado\")
+
+
+func _cast_spell_at_mouse() -> void:
+	if not spell_caster:
+		return
+
+	var mouse_pos := get_global_mouse_position()
+	if spell_caster.cast_at_position(mouse_pos):
+		_spell_mode = false
+		_update_status(\"Trampa colocada!\")
+
+
+func _on_hp_changed(current: int, max_hp: int) -> void:
+	if hp_label:
+		hp_label.text = \"HP: %d/%d\" % [current, max_hp]
+
+
+func _update_status(text: String) -> void:
+	if status_label:
+		status_label.text = text
+
+
+func _update_capture_count() -> void:
+	if capture_label and SaveManager.current_data:
+		var count := SaveManager.current_data.reserve.size()
+		capture_label.text = \"Capturados: %d\" % count
+
+		var enemies := get_tree().get_nodes_in_group(\"enemies\")
+		var weak_count := 0
+		for e in enemies:
+			if e.has_method(\"get_hp_percent\") and e.get_hp_percent() < 0.25:
+				weak_count += 1
+
+		capture_label.text += \" | Debiles: %d/%d\" % [weak_count, enemies.size()]
+
+
+func _exit_to_menu() -> void:
+	SceneTransition.change_scene(\"res://scenes/debug/debug_menu.tscn\")
+
+
+func _on_spawn_weak_pressed() -> void:
+	var scene := load(\"res://scenes/entities/enemy_fast.tscn\") as PackedScene
+	if scene:
+		var enemy := scene.instantiate()
+		add_child(enemy)
+		enemy.global_position = player.global_position + Vector2(randf_range(-150, 150), randf_range(-150, 150))
+		# Debilitar inmediatamente
+		await get_tree().process_frame
+		enemy.hp = int(enemy.max_hp * 0.15)
+		print(\"[TestCapture] Spawneado enemigo debil: %s\" % enemy.name)
+
+
+func _on_spawn_strong_pressed() -> void:
+	var scene := load(\"res://scenes/entities/enemy_tank.tscn\") as PackedScene
+	if scene:
+		var enemy := scene.instantiate()
+		add_child(enemy)
+		enemy.global_position = player.global_position + Vector2(randf_range(-150, 150), randf_range(-150, 150))
+		print(\"[TestCapture] Spawneado enemigo fuerte: %s\" % enemy.name)
+"
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 30.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("1_shader")
+shader_parameter/color_deep = Color(0.08, 0.05, 0.12, 1)
+shader_parameter/color_mid = Color(0.12, 0.08, 0.18, 1)
+shader_parameter/color_light = Color(0.1, 0.06, 0.15, 1)
+shader_parameter/color_accent = Color(0.48, 0.17, 0.75, 0.4)
+shader_parameter/fog_speed = 0.02
+shader_parameter/fog_scale = 12.0
+shader_parameter/fog_intensity = 0.3
+
+[node name="TestCapture" type="Node2D"]
+script = SubResource("GDScript_test")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -100
+material = SubResource("ShaderMaterial_bg")
+offset_left = -2000.0
+offset_top = -2000.0
+offset_right = 2000.0
+offset_bottom = 2000.0
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(500, 400)
+script = ExtResource("2_player")
+
+[node name="Visual" type="Polygon2D" parent="Player"]
+color = Color(0.878431, 0.878431, 0.878431, 1)
+polygon = PackedVector2Array(26, -15, 26, 15, 0, 30, -26, 15, -26, -15, 0, -30)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_player")
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position_smoothing_enabled = true
+
+[node name="SpellCaster" type="Node2D" parent="."]
+script = ExtResource("3_spell_caster")
+
+[node name="RuneCanvas" parent="." instance=ExtResource("4_rune_canvas")]
+
+[node name="EnemyWeak1" parent="." instance=ExtResource("6_fast")]
+position = Vector2(300, 300)
+
+[node name="EnemyWeak2" parent="." instance=ExtResource("6_fast")]
+position = Vector2(700, 350)
+
+[node name="EnemyStrong1" parent="." instance=ExtResource("5_tank")]
+position = Vector2(400, 550)
+
+[node name="EnemyStrong2" parent="." instance=ExtResource("5_tank")]
+position = Vector2(650, 500)
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="StatusLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 700.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0.48, 0.17, 0.75, 1)
+theme_override_font_sizes/font_size = 18
+text = "Test Capture"
+
+[node name="HPLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 50.0
+offset_right = 200.0
+offset_bottom = 80.0
+theme_override_colors/font_color = Color(0.9, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 18
+text = "HP: 100/100"
+
+[node name="CaptureLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 80.0
+offset_right = 350.0
+offset_bottom = 110.0
+theme_override_colors/font_color = Color(0.48, 0.17, 0.75, 1)
+theme_override_font_sizes/font_size = 16
+text = "Capturados: 0"
+
+[node name="HelpLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 120.0
+offset_right = 400.0
+offset_bottom = 180.0
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Dibuja ? (signo de interrogacion) para capturar
+Enemigos deben tener HP < 25%"
+
+[node name="SpawnPanel" type="VBoxContainer" parent="UI"]
+offset_left = 20.0
+offset_top = 200.0
+offset_right = 180.0
+offset_bottom = 320.0
+
+[node name="SpawnLabel" type="Label" parent="UI/SpawnPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Spawn Enemy:"
+
+[node name="SpawnWeak" type="Button" parent="UI/SpawnPanel"]
+layout_mode = 2
+text = "Debil (capturable)"
+
+[node name="SpawnStrong" type="Button" parent="UI/SpawnPanel"]
+layout_mode = 2
+text = "Fuerte (HP lleno)"
+
+[connection signal="pressed" from="UI/SpawnPanel/SpawnWeak" to="." method="_on_spawn_weak_pressed"]
+[connection signal="pressed" from="UI/SpawnPanel/SpawnStrong" to="." method="_on_spawn_strong_pressed"]

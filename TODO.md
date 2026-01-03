@@ -110,7 +110,7 @@ Cada entregable es una versión ejecutable del juego con commits semánticos.
 - [x] `test_spells.tscn` - Lanzar hechizos y efectos (Entregable 8)
 - [x] `test_enemies.tscn` - Combate player vs enemigos (Entregable 9)
 - [x] `test_rts.tscn` - Selección y comandos de unidades (Entregable 10)
-- [ ] `test_capture.tscn` - Captura e invocación
+- [x] `test_capture.tscn` - Captura de monstruos (Entregable 11)
 
 ---
 
@@ -337,16 +337,17 @@ resources/maps/
 
 ---
 
-## Entregable 11: Sistema de Captura
+## Entregable 11: Sistema de Captura ✅
 **Objetivo:** Capturar enemigos debilitados
 **Tag:** `v0.11.0-capture`
 
 ### Tareas:
-- [ ] Implementar OSCURIDAD_1 como hechizo de captura
-- [ ] Verificar HP < 25% para captura exitosa
-- [ ] Monstruos capturados van a "reserva" (datos en SaveManager)
-- [ ] Efectos visuales: espiral de captura, flash de éxito/fallo
-- [ ] Feedback: "No está lo suficientemente débil" si HP >= 25%
+- [x] Implementar OSCURIDAD_1 como hechizo de captura
+- [x] Verificar HP < 25% para captura exitosa
+- [x] Monstruos capturados van a "reserva" (datos en SaveManager)
+- [x] Efectos visuales: espiral de captura, flash de éxito/fallo
+- [x] Feedback: "Muy fuerte! (X%)" si HP >= 25%
+- [x] Crear `scenes/debug/test_capture.tscn` para debug
 
 **Criterio de aceptación:** Debilitar enemigo → dibujar ? → captura exitosa → guardado.
 

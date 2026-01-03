@@ -6,16 +6,17 @@ script/source = "extends Node2D
 # =============================================================================
 # HONK MAGIC - Capture Trap (Oscuridad)
 # =============================================================================
-# Trampa de captura que absorbe enemigos debilitados.
+# Trampa de captura que absorbe enemigos debilitados (HP < 25%).
 
-signal enemy_captured(enemy: Node2D)
+signal enemy_captured(enemy_data: Dictionary)
 
 @export var duration: float = 10.0
 @export var trap_radius: float = 40.0
-@export var trap_color: Color = Color(\"#7b2cbf\")
+@export var capture_threshold: float = 0.25  # 25% HP
 
 var caster: Node2D = null
 var is_active: bool = true
+var _spiral_particles: CPUParticles2D = null
 
 @onready var visual: Node2D = $Visual
 @onready var area: Area2D = $Area2D
@@ -42,9 +43,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	# Rotar el visual lentamente
+	# Rotar el visual
 	if visual:
-		visual.rotation += delta * 0.5
+		visual.rotation += delta * 1.5
 
 
 func _on_body_entered(body: Node2D) -> void:
@@ -52,55 +53,135 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 
 	# Verificar si es un enemigo capturable
-	if not body.is_in_group(\"enemy\"):
+	if not body.is_in_group(\"enemies\"):
 		return
 
-	# Verificar HP < 25% para captura (implementar en Entregable 11)
-	var can_capture := false
+	# Verificar HP < 25% para captura
+	var hp_percent := 1.0
 	if \"hp\" in body and \"max_hp\" in body:
-		can_capture = body.hp < body.max_hp * 0.25
-	elif body.has_node(\"HealthComponent\"):
-		var health = body.get_node(\"HealthComponent\")
-		can_capture = health.current_health < health.max_health * 0.25
+		hp_percent = float(body.hp) / float(body.max_hp)
+	elif body.has_method(\"get_hp_percent\"):
+		hp_percent = body.get_hp_percent()
 
-	if can_capture:
+	if hp_percent < capture_threshold:
 		_capture_enemy(body)
 	else:
-		# Feedback: no esta suficientemente debil
-		_show_fail_feedback()
+		_show_fail_feedback(hp_percent)
 
 
 func _capture_enemy(enemy: Node2D) -> void:
 	is_active = false
 
-	# Animacion de captura
+	# Crear efecto de espiral
+	_create_spiral_effect()
+
+	# Extraer datos del enemigo antes de destruirlo
+	var enemy_data := _extract_enemy_data(enemy)
+
+	# Animacion de captura con espiral
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(enemy, \"scale\", Vector2.ZERO, 0.5)
-	tween.tween_property(enemy, \"global_position\", global_position, 0.5)
+	tween.tween_property(enemy, \"scale\", Vector2.ZERO, 0.6).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(enemy, \"global_position\", global_position, 0.6).set_ease(Tween.EASE_IN)
+	tween.tween_property(enemy, \"rotation\", enemy.rotation + TAU * 2, 0.6)  # Girar mientras se absorbe
 	tween.set_parallel(false)
 	tween.tween_callback(func():
-		enemy_captured.emit(enemy)
+		# Guardar en SaveManager
+		_save_captured_monster(enemy_data)
+		enemy_captured.emit(enemy_data)
 		enemy.queue_free()
-		_show_success_feedback()
+		_show_success_feedback(enemy_data.name)
 	)
 
 
-func _show_success_feedback() -> void:
+func _extract_enemy_data(enemy: Node2D) -> Dictionary:
+	var data := {
+		\"name\": enemy.name.replace(\"@\", \"\").split(\"_\")[0],  # Limpiar nombre
+		\"scene_path\": enemy.scene_file_path if \"scene_file_path\" in enemy else \"\",
+		\"max_hp\": enemy.max_hp if \"max_hp\" in enemy else 100,
+		\"attack_damage\": enemy.attack_damage if \"attack_damage\" in enemy else 10,
+		\"speed\": enemy.speed if \"speed\" in enemy else 100,
+		\"captured_at\": Time.get_datetime_string_from_system()
+	}
+	return data
+
+
+func _save_captured_monster(enemy_data: Dictionary) -> void:
+	if SaveManager.current_data:
+		SaveManager.current_data.reserve.append(enemy_data)
+		print(\"[CaptureTrap] Monstruo guardado en reserva: %s\" % enemy_data.name)
+		print(\"[CaptureTrap] Total en reserva: %d\" % SaveManager.current_data.reserve.size())
+
+
+func _create_spiral_effect() -> void:
+	_spiral_particles = CPUParticles2D.new()
+	_spiral_particles.emitting = true
+	_spiral_particles.amount = 24
+	_spiral_particles.lifetime = 0.6
+	_spiral_particles.one_shot = true
+	_spiral_particles.explosiveness = 0.0
+	_spiral_particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	_spiral_particles.emission_sphere_radius = 60.0
+	_spiral_particles.direction = Vector2.ZERO
+	_spiral_particles.spread = 180.0
+	_spiral_particles.gravity = Vector2.ZERO
+	_spiral_particles.initial_velocity_min = -80.0
+	_spiral_particles.initial_velocity_max = -60.0
+	_spiral_particles.angular_velocity_min = 360.0
+	_spiral_particles.angular_velocity_max = 720.0
+	_spiral_particles.scale_amount_min = 3.0
+	_spiral_particles.scale_amount_max = 6.0
+	_spiral_particles.color = Color(0.48, 0.17, 0.75, 1.0)
+	add_child(_spiral_particles)
+
+
+func _show_success_feedback(monster_name: String) -> void:
+	# Mostrar texto de exito
+	_spawn_floating_text(\"Capturado!\", Color.GREEN)
+
 	# Particulas de exito
 	modulate = Color.GREEN
 	var tween := create_tween()
-	tween.tween_property(self, \"scale\", Vector2(1.5, 1.5), 0.3)
+	tween.tween_property(self, \"scale\", Vector2(1.8, 1.8), 0.3)
 	tween.tween_property(self, \"modulate:a\", 0.0, 0.3)
 	tween.tween_callback(queue_free)
 
+	print(\"[CaptureTrap] Captura exitosa: %s\" % monster_name)
 
-func _show_fail_feedback() -> void:
-	# Flash rojo indicando que no se puede capturar
-	var original_color := modulate
+
+func _show_fail_feedback(hp_percent: float) -> void:
+	# Mostrar texto de fallo
+	var hp_display := int(hp_percent * 100)
+	_spawn_floating_text(\"Muy fuerte! (%d%%)\" % hp_display, Color.RED)
+
+	# Flash rojo
+	var original_modulate := modulate
 	modulate = Color.RED
+
 	var tween := create_tween()
-	tween.tween_property(self, \"modulate\", original_color, 0.2)
+	tween.tween_property(self, \"modulate\", original_modulate, 0.3)
+
+	print(\"[CaptureTrap] Captura fallida - HP: %d%% (necesita < 25%%)\" % hp_display)
+
+
+func _spawn_floating_text(text: String, color: Color) -> void:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override(\"font_size\", 16)
+	label.add_theme_color_override(\"font_color\", color)
+	label.add_theme_color_override(\"font_outline_color\", Color.BLACK)
+	label.add_theme_constant_override(\"outline_size\", 3)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = Vector2(-50, -60)
+
+	add_child(label)
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, \"position:y\", label.position.y - 40, 1.0)
+	tween.tween_property(label, \"modulate:a\", 0.0, 1.0).set_delay(0.5)
+	tween.set_parallel(false)
+	tween.tween_callback(label.queue_free)
 
 
 func _on_timeout() -> void:
@@ -114,7 +195,7 @@ func _on_timeout() -> void:
 "
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_trap"]
-radius = 40.0
+radius = 80.0
 
 [node name="CaptureTrap" type="Node2D"]
 script = SubResource("GDScript_capture_trap")
@@ -123,22 +204,22 @@ script = SubResource("GDScript_capture_trap")
 
 [node name="OuterCircle" type="Polygon2D" parent="Visual"]
 color = Color(0.482353, 0.172549, 0.74902, 0.3)
-polygon = PackedVector2Array(40, 0, 38.0423, 12.3607, 32.3607, 23.5114, 23.5114, 32.3607, 12.3607, 38.0423, 0, 40, -12.3607, 38.0423, -23.5114, 32.3607, -32.3607, 23.5114, -38.0423, 12.3607, -40, 0, -38.0423, -12.3607, -32.3607, -23.5114, -23.5114, -32.3607, -12.3607, -38.0423, 0, -40, 12.3607, -38.0423, 23.5114, -32.3607, 32.3607, -23.5114, 38.0423, -12.3607)
+polygon = PackedVector2Array(80, 0, 76.08, 24.72, 64.72, 47.02, 47.02, 64.72, 24.72, 76.08, 0, 80, -24.72, 76.08, -47.02, 64.72, -64.72, 47.02, -76.08, 24.72, -80, 0, -76.08, -24.72, -64.72, -47.02, -47.02, -64.72, -24.72, -76.08, 0, -80, 24.72, -76.08, 47.02, -64.72, 64.72, -47.02, 76.08, -24.72)
 
 [node name="InnerCircle" type="Polygon2D" parent="Visual"]
 color = Color(0.482353, 0.172549, 0.74902, 0.8)
-polygon = PackedVector2Array(20, 0, 19.0211, 6.18034, 16.1803, 11.7557, 11.7557, 16.1803, 6.18034, 19.0211, 0, 20, -6.18034, 19.0211, -11.7557, 16.1803, -16.1803, 11.7557, -19.0211, 6.18034, -20, 0, -19.0211, -6.18034, -16.1803, -11.7557, -11.7557, -16.1803, -6.18034, -19.0211, 0, -20, 6.18034, -19.0211, 11.7557, -16.1803, 16.1803, -11.7557, 19.0211, -6.18034)
+polygon = PackedVector2Array(40, 0, 38.04, 12.36, 32.36, 23.51, 23.51, 32.36, 12.36, 38.04, 0, 40, -12.36, 38.04, -23.51, 32.36, -32.36, 23.51, -38.04, 12.36, -40, 0, -38.04, -12.36, -32.36, -23.51, -23.51, -32.36, -12.36, -38.04, 0, -40, 12.36, -38.04, 23.51, -32.36, 32.36, -23.51, 38.04, -12.36)
 
 [node name="CoreCircle" type="Polygon2D" parent="Visual"]
 color = Color(0.2, 0.05, 0.3, 1)
-polygon = PackedVector2Array(8, 0, 7.60845, 2.47214, 6.47214, 4.70228, 4.70228, 6.47214, 2.47214, 7.60845, 0, 8, -2.47214, 7.60845, -4.70228, 6.47214, -6.47214, 4.70228, -7.60845, 2.47214, -8, 0, -7.60845, -2.47214, -6.47214, -4.70228, -4.70228, -6.47214, -2.47214, -7.60845, 0, -8, 2.47214, -7.60845, 4.70228, -6.47214, 6.47214, -4.70228, 7.60845, -2.47214)
+polygon = PackedVector2Array(16, 0, 15.22, 4.94, 12.94, 9.40, 9.40, 12.94, 4.94, 15.22, 0, 16, -4.94, 15.22, -9.40, 12.94, -12.94, 9.40, -15.22, 4.94, -16, 0, -15.22, -4.94, -12.94, -9.40, -9.40, -12.94, -4.94, -15.22, 0, -16, 4.94, -15.22, 9.40, -12.94, 12.94, -9.40, 15.22, -4.94)
 
 [node name="Particles" type="CPUParticles2D" parent="."]
-amount = 16
+amount = 24
 lifetime = 1.5
 preprocess = 0.5
 emission_shape = 1
-emission_sphere_radius = 35.0
+emission_sphere_radius = 70.0
 direction = Vector2(0, 0)
 spread = 180.0
 gravity = Vector2(0, -20)
@@ -150,7 +231,7 @@ color = Color(0.482353, 0.172549, 0.74902, 0.8)
 
 [node name="Area2D" type="Area2D" parent="."]
 collision_layer = 0
-collision_mask = 4
+collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
 shape = SubResource("CircleShape2D_trap")

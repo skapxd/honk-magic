@@ -353,20 +353,21 @@ resources/maps/
 
 ---
 
-## Entregable 12: Grimorio + Invocación
+## Entregable 12: Grimorio + Invocación ✅
 **Objetivo:** Ver monstruos capturados e invocarlos
 **Tag:** `v0.12.0-grimoire`
 
 ### Tareas:
-- [ ] Crear `scenes/ui/grimoire.tscn`:
+- [x] Crear `scenes/ui/grimoire.tscn`:
   - Modal overlay (NO pausa el juego)
   - Tab RUNAS: Lista de 6 runas con descripción
   - Tab MONSTRUOS: Lista de monstruos capturados + botón INVOCAR
-- [ ] Implementar invocación:
+- [x] Implementar invocación:
   - Monstruo aparece junto al jugador
   - Cooldown 5 segundos
   - Límite 24 en campo
-- [ ] Tecla G para abrir/cerrar
+- [x] Tecla G para abrir/cerrar
+- [x] Integrar con test_capture.tscn
 
 **Criterio de aceptación:** Capturar enemigo → G → Monstruos → INVOCAR → aparece como aliado.
 

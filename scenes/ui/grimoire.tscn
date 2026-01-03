@@ -1,0 +1,348 @@
+[gd_scene load_steps=3 format=3 uid="uid://grimoire_scene"]
+
+[ext_resource type="Theme" uid="uid://canhs6wcwwphu" path="res://resources/theme/honk_theme.tres" id="1_theme"]
+
+[sub_resource type="GDScript" id="GDScript_grimoire"]
+script/source = "extends CanvasLayer
+
+# =============================================================================
+# HONK MAGIC - Grimorio
+# =============================================================================
+# UI para ver runas aprendidas y monstruos capturados.
+# NO pausa el juego - el jugador puede ser atacado mientras lo usa.
+
+signal monster_summoned(monster_data: Dictionary)
+signal closed()
+
+const SUMMON_COOLDOWN := 5.0
+const MAX_SUMMONED := 24
+
+var is_open: bool = false
+var _summon_cooldown_timer: float = 0.0
+var _summoned_count: int = 0
+
+@onready var panel: PanelContainer = $Panel
+@onready var tab_container: TabContainer = $Panel/MarginContainer/VBoxContainer/TabContainer
+@onready var runes_container: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Runas/ScrollContainer/RunesList
+@onready var monsters_container: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Monstruos/ScrollContainer/MonstersList
+@onready var cooldown_label: Label = $Panel/MarginContainer/VBoxContainer/CooldownLabel
+@onready var summoned_label: Label = $Panel/MarginContainer/VBoxContainer/SummonedLabel
+
+
+func _ready() -> void:
+	visible = false
+	_populate_runes()
+
+
+func _process(delta: float) -> void:
+	if _summon_cooldown_timer > 0:
+		_summon_cooldown_timer -= delta
+		_update_cooldown_display()
+
+	# Contar monstruos invocados actualmente
+	_summoned_count = get_tree().get_nodes_in_group(\"allies\").size()
+	_update_summoned_display()
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(\"open_grimoire\"):
+		toggle()
+	elif event.is_action_pressed(\"pause\") and is_open:
+		close()
+
+
+func toggle() -> void:
+	if is_open:
+		close()
+	else:
+		open()
+
+
+func open() -> void:
+	if is_open:
+		return
+
+	is_open = true
+	visible = true
+	_refresh_monsters()
+
+	# Animacion de entrada
+	panel.modulate.a = 0.0
+	panel.scale = Vector2(0.9, 0.9)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(panel, \"modulate:a\", 1.0, 0.15)
+	tween.tween_property(panel, \"scale\", Vector2.ONE, 0.15).set_ease(Tween.EASE_OUT)
+
+
+func close() -> void:
+	if not is_open:
+		return
+
+	is_open = false
+
+	var tween := create_tween()
+	tween.tween_property(panel, \"modulate:a\", 0.0, 0.1)
+	tween.tween_callback(func(): visible = false)
+	closed.emit()
+
+
+func _populate_runes() -> void:
+	if not runes_container:
+		return
+
+	# Limpiar contenedor
+	for child in runes_container.get_children():
+		child.queue_free()
+
+	# Datos de las runas
+	var runes := [
+		{\"name\": \"Fuego\", \"symbol\": \"△\", \"color\": Color(\"#e6394a\"), \"desc\": \"Bola de fuego que quema enemigos.\"},
+		{\"name\": \"Agua\", \"symbol\": \"○\", \"color\": Color(\"#0077b6\"), \"desc\": \"Proyectil que moja y ralentiza.\"},
+		{\"name\": \"Viento\", \"symbol\": \"∿\", \"color\": Color(\"#80ed99\"), \"desc\": \"Rafaga que empuja enemigos.\"},
+		{\"name\": \"Tierra\", \"symbol\": \"□\", \"color\": Color(\"#dda15e\"), \"desc\": \"Crea un muro solido defensivo.\"},
+		{\"name\": \"Luz\", \"symbol\": \"✦\", \"color\": Color(\"#ffd60a\"), \"desc\": \"Curacion instantanea.\"},
+		{\"name\": \"Oscuridad\", \"symbol\": \"?\", \"color\": Color(\"#7b2cbf\"), \"desc\": \"Trampa para capturar enemigos debiles.\"}
+	]
+
+	for rune in runes:
+		var item := _create_rune_item(rune)
+		runes_container.add_child(item)
+
+
+func _create_rune_item(rune: Dictionary) -> HBoxContainer:
+	var container := HBoxContainer.new()
+	container.add_theme_constant_override(\"separation\", 15)
+
+	# Simbolo de la runa
+	var symbol := Label.new()
+	symbol.text = rune.symbol
+	symbol.add_theme_font_size_override(\"font_size\", 32)
+	symbol.add_theme_color_override(\"font_color\", rune.color)
+	symbol.custom_minimum_size = Vector2(50, 0)
+	symbol.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	container.add_child(symbol)
+
+	# Info
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var name_label := Label.new()
+	name_label.text = rune.name
+	name_label.add_theme_font_size_override(\"font_size\", 18)
+	name_label.add_theme_color_override(\"font_color\", rune.color)
+	info.add_child(name_label)
+
+	var desc_label := Label.new()
+	desc_label.text = rune.desc
+	desc_label.add_theme_font_size_override(\"font_size\", 14)
+	desc_label.add_theme_color_override(\"font_color\", Color(0.7, 0.7, 0.7))
+	info.add_child(desc_label)
+
+	container.add_child(info)
+
+	return container
+
+
+func _refresh_monsters() -> void:
+	if not monsters_container:
+		return
+
+	# Limpiar contenedor
+	for child in monsters_container.get_children():
+		child.queue_free()
+
+	# Obtener monstruos de SaveManager
+	if not SaveManager.current_data:
+		var empty_label := Label.new()
+		empty_label.text = \"No hay monstruos capturados.\"
+		empty_label.add_theme_color_override(\"font_color\", Color(0.5, 0.5, 0.5))
+		monsters_container.add_child(empty_label)
+		return
+
+	var monsters: Array = SaveManager.current_data.reserve
+	if monsters.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = \"No hay monstruos capturados.\\nUsa el hechizo de Oscuridad (?) para capturar.\"
+		empty_label.add_theme_color_override(\"font_color\", Color(0.5, 0.5, 0.5))
+		monsters_container.add_child(empty_label)
+		return
+
+	for i in range(monsters.size()):
+		var monster: Dictionary = monsters[i]
+		var item := _create_monster_item(monster, i)
+		monsters_container.add_child(item)
+
+
+func _create_monster_item(monster: Dictionary, index: int) -> HBoxContainer:
+	var container := HBoxContainer.new()
+	container.add_theme_constant_override(\"separation\", 10)
+
+	# Info del monstruo
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var name_label := Label.new()
+	name_label.text = monster.get(\"name\", \"Monstruo\")
+	name_label.add_theme_font_size_override(\"font_size\", 16)
+	name_label.add_theme_color_override(\"font_color\", Color(0, 0.96, 0.83))
+	info.add_child(name_label)
+
+	var stats_label := Label.new()
+	stats_label.text = \"HP: %d | ATK: %d\" % [monster.get(\"max_hp\", 50), monster.get(\"attack_damage\", 10)]
+	stats_label.add_theme_font_size_override(\"font_size\", 12)
+	stats_label.add_theme_color_override(\"font_color\", Color(0.6, 0.6, 0.6))
+	info.add_child(stats_label)
+
+	container.add_child(info)
+
+	# Boton invocar
+	var summon_btn := Button.new()
+	summon_btn.text = \"INVOCAR\"
+	summon_btn.custom_minimum_size = Vector2(100, 40)
+	summon_btn.pressed.connect(_on_summon_pressed.bind(index))
+	container.add_child(summon_btn)
+
+	return container
+
+
+func _on_summon_pressed(index: int) -> void:
+	# Verificar cooldown
+	if _summon_cooldown_timer > 0:
+		print(\"[Grimoire] En cooldown: %.1f segundos\" % _summon_cooldown_timer)
+		return
+
+	# Verificar limite
+	if _summoned_count >= MAX_SUMMONED:
+		print(\"[Grimoire] Limite alcanzado: %d/%d\" % [_summoned_count, MAX_SUMMONED])
+		return
+
+	# Obtener datos del monstruo
+	if not SaveManager.current_data or index >= SaveManager.current_data.reserve.size():
+		return
+
+	var monster_data: Dictionary = SaveManager.current_data.reserve[index]
+
+	# Remover de reserva
+	SaveManager.current_data.reserve.remove_at(index)
+
+	# Iniciar cooldown
+	_summon_cooldown_timer = SUMMON_COOLDOWN
+
+	# Emitir signal para que el juego spawnee el aliado
+	monster_summoned.emit(monster_data)
+	print(\"[Grimoire] Invocando: %s\" % monster_data.get(\"name\", \"Monstruo\"))
+
+	# Refrescar lista
+	_refresh_monsters()
+
+
+func _update_cooldown_display() -> void:
+	if cooldown_label:
+		if _summon_cooldown_timer > 0:
+			cooldown_label.text = \"Cooldown: %.1fs\" % _summon_cooldown_timer
+			cooldown_label.visible = true
+		else:
+			cooldown_label.visible = false
+
+
+func _update_summoned_display() -> void:
+	if summoned_label:
+		summoned_label.text = \"Invocados: %d/%d\" % [_summoned_count, MAX_SUMMONED]
+"
+
+[node name="Grimoire" type="CanvasLayer"]
+layer = 20
+script = SubResource("GDScript_grimoire")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -250.0
+offset_right = 300.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_theme")
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 0.961, 0.831, 1)
+theme_override_font_sizes/font_size = 24
+text = "GRIMORIO"
+
+[node name="CloseButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/Header"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+text = "X"
+
+[node name="TabContainer" type="TabContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Runas" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Runas"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RunesList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Runas/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 15
+
+[node name="Monstruos" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Monstruos"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MonstersList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Monstruos/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="SummonedLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "Invocados: 0/24"
+
+[node name="CooldownLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.5, 0.3, 1)
+theme_override_font_sizes/font_size = 14
+text = "Cooldown: 5.0s"
+
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/Header/CloseButton" to="." method="close"]
